@@ -1,0 +1,10 @@
+{
+    "welcomeMessage": "Welcome to our website!",
+    "loginButton": "Sign in",
+    "signupButton": "Sign up",
+    "nav": {
+        "findPartner": "Find Partner",
+        "blog": "Blog",
+        "download": "Download"
+    }
+}

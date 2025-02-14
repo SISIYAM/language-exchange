@@ -1,0 +1,12 @@
+{
+  "welcomeMessage": "Welcome to our website!",
+  "loginButton": "Login",
+  "signupButton": "Sign up",
+  "nav": {
+      "findPartner": "Find Partner",
+      "chat": "Chat",
+      "blog": "Blog",
+      "download": "Download"
+  },
+  "startBtn": "Start to learn languages"
+}

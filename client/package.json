@@ -1,0 +1,47 @@
+{
+  "name": "enlighten",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@reduxjs/toolkit": "^2.2.7",
+    "axios": "^1.7.7",
+    "express": "^4.21.0",
+    "framer-motion": "^11.3.28",
+    "http": "^0.0.1-security",
+    "js-cookie": "^3.0.5",
+    "next": "^14.2.23",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-hook-form": "^7.53.0",
+    "react-hot-toast": "^2.4.1",
+    "react-icons": "^5.3.0",
+    "react-player": "^2.16.0",
+    "react-quill": "^2.0.0",
+    "react-redux": "^9.1.2",
+    "react-slick": "^0.30.2",
+    "react-transition-group": "^4.4.5",
+    "redux": "^5.0.1",
+    "simple-peer": "^9.11.1",
+    "slick-carousel": "^1.8.1",
+    "socket.io": "^4.8.0",
+    "socket.io-client": "^4.8.0",
+    "swiper": "^11.1.10",
+    "world-flags-sprite": "^0.0.2"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.22.20",
+    "@babel/eslint-parser": "^7.22.20",
+    "eslint": "^8.50.0",
+    "eslint-config-next": "^14.2.5",
+    "glob": "^9.3.5",
+    "postcss": "^8.4.31",
+    "rimraf": "^4.4.0",
+    "tailwindcss": "^3.4.4"
+  }
+}

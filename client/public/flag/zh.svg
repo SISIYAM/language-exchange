@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="70px" height="70px" viewBox="0 0 70 70" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 63.1 (92452) - https://sketch.com -->
+    <title>web/svg/ic_flag_zh</title>
+    <desc>Created with Sketch.</desc>
+    <g id="Symbols" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="lang/C-D-E/ChineseSimplified-zh">
+            <g id="zh">
+                <g id="Flag_of_the_People's_Republic_of_China" transform="translate(1.000000, 1.000000)">
+                    <circle id="bg" fill="#DE2910" cx="34" cy="34" r="34"></circle>
+                    <g id="s-link" transform="translate(9.000000, 16.000000)" fill="#FFDE00" fill-rule="nonzero">
+                        <polygon id="s" points="10.5 0 16.6717425 18.9946785 0.5139015 7.2553215 20.4860985 7.2553215 4.3282575 18.9946785"></polygon>
+                    </g>
+                    <g id="s-link" transform="translate(37.000000, 16.000000) rotate(23.036243) translate(-37.000000, -16.000000) translate(33.500000, 12.500000)" fill="#FFDE00" fill-rule="nonzero">
+                        <polygon id="s" points="3.5 0 5.5572475 6.3315595 0.1713005 2.4184405 6.8286995 2.4184405 1.4427525 6.3315595"></polygon>
+                    </g>
+                    <g id="s-link" transform="translate(44.000000, 23.000000) rotate(45.869898) translate(-44.000000, -23.000000) translate(40.500000, 19.500000)" fill="#FFDE00" fill-rule="nonzero">
+                        <polygon id="s" points="3.5 0 5.5572475 6.3315595 0.1713005 2.4184405 6.8286995 2.4184405 1.4427525 6.3315595"></polygon>
+                    </g>
+                    <g id="s-link" transform="translate(44.000000, 33.500000) rotate(69.945396) translate(-44.000000, -33.500000) translate(40.500000, 30.000000)" fill="#FFDE00" fill-rule="nonzero">
+                        <polygon id="s" points="3.5 0 5.5572475 6.3315595 0.1713005 2.4184405 6.8286995 2.4184405 1.4427525 6.3315595"></polygon>
+                    </g>
+                    <g id="s-link" transform="translate(37.000000, 40.500000) rotate(20.659808) translate(-37.000000, -40.500000) translate(33.500000, 37.000000)" fill="#FFDE00" fill-rule="nonzero">
+                        <polygon id="s" points="3.5 0 5.5572475 6.3315595 0.1713005 2.4184405 6.8286995 2.4184405 1.4427525 6.3315595"></polygon>
+                    </g>
+                </g>
+                <g id="border" fill="#C5C5C2">
+                    <path d="M35,0 C54.3299662,0 70,15.6700338 70,35 C70,54.3299662 54.3299662,70 35,70 C15.6700338,70 0,54.3299662 0,35 C0,15.6700338 15.6700338,0 35,0 Z M35,2 C16.7746033,2 2,16.7746033 2,35 C2,53.2253967 16.7746033,68 35,68 C53.2253967,68 68,53.2253967 68,35 C68,16.7746033 53.2253967,2 35,2 Z"></path>
+                </g>
+            </g>
+        </g>
+    </g>
+</svg>

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="70px" height="70px" viewBox="0 0 70 70" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 63.1 (92452) - https://sketch.com -->
+    <title>web/svg/ic_flag_en_uk</title>
+    <desc>Created with Sketch.</desc>
+    <defs>
+        <circle id="path-1" cx="34" cy="34" r="34"></circle>
+    </defs>
+    <g id="Symbols" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="lang/C-D-E/English-en_uk">
+            <g id="en_uk">
+                <g id="Group" transform="translate(1.000000, 1.000000)">
+                    <mask id="mask-2" fill="white">
+                        <use xlink:href="#path-1"></use>
+                    </mask>
+                    <use id="Mask" fill="#012169" xlink:href="#path-1"></use>
+                    <g mask="url(#mask-2)">
+                        <g transform="translate(-7.000000, -6.000000)">
+                            <polygon id="band" fill="#FFFFFF" points="10.5 9.61865246 9.08475179 17.0000002 68.1689833 71.1263803 71.7165385 67.9598066 74.5975577 62.1263831 15.513323 8"></polygon>
+                            <polygon id="band" fill="#C7152A" points="13.7142859 9.5 10.5 13.9999997 68.357141 67.999998 71.5714307 63.5000019"></polygon>
+                            <path d="M72.006,9.5 L73.5060002,16.9999999 C73.5060002,16.9999999 34.2402723,51.7829553 17.4217655,68.1263827 C17.2172902,68.3250821 10.9998265,68.1406839 10.9998265,68.1406839 L9,61.0747802 L65.5774282,9.50000009 L72.006,9.5 Z" id="band" fill="#FFFFFF"></path>
+                            <polygon id="band" fill="#C7152A" points="68.4948888 9.5 71.5714285 14.1252346 13.7142847 68.1252356 10.5 63.6252346"></polygon>
+                            <polygon id="cross" fill="#FFFFFF" points="30.4736842 0.65 52.0263158 0.65 52.0263158 27.65 82.2 27.65 82.2 50.15 52.0263158 50.15 52.0263158 77.15 30.4736842 77.15 30.4736842 50.15 0.3 50.15 0.3 27.65 30.4736842 27.65"></polygon>
+                            <polygon id="cross" fill="#C7152A" points="34.7842105 0.65 47.7157895 0.65 47.7157895 32.15 82.2 32.15 82.2 45.65 47.7157895 45.65 47.7157895 77.15 34.7842105 77.15 34.7842105 45.65 0.3 45.65 0.3 32.15 34.7842105 32.15"></polygon>
+                        </g>
+                    </g>
+                </g>
+                <g id="border" fill="#C5C5C2">
+                    <path d="M35,0 C54.3299662,0 70,15.6700338 70,35 C70,54.3299662 54.3299662,70 35,70 C15.6700338,70 0,54.3299662 0,35 C0,15.6700338 15.6700338,0 35,0 Z M35,2 C16.7746033,2 2,16.7746033 2,35 C2,53.2253967 16.7746033,68 35,68 C53.2253967,68 68,53.2253967 68,35 C68,16.7746033 53.2253967,2 35,2 Z"></path>
+                </g>
+            </g>
+        </g>
+    </g>
+</svg>
