@@ -108,9 +108,7 @@ const ProfileDetails = () => {
           </p>
 
           <h3 className="font-semibold mt-4">Language Proficiency</h3>
-          <p className="text-gray-700 capitalize">
-            {profile.proficiencyLevel.toLowerCase()}
-          </p>
+          <p className="text-gray-700 capitalize">{profile.proficiencyLevel}</p>
 
           <h3 className="font-semibold mt-4">Learning Preferences</h3>
           <p className="text-gray-700">
