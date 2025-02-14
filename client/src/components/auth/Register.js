@@ -250,7 +250,7 @@ const Register = () => {
           <Controller
             name="dob"
             control={control}
-            defaultValue={profile?.dob || currentUser?.dob || ""}
+            defaultValue={""}
             rules={{
               required: "Date of birth is required",
             }}
