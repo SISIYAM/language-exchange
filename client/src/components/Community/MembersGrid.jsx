@@ -6,6 +6,15 @@ import HighlightedProfiles from "./HighlightedProfiles";
 import Link from "next/link";
 import { fetchMembers } from "@/features/user/membersSlice";
 
+// Debounce function to limit the rate of API calls
+const debounce = (func, wait) => {
+  let timeout;
+  return function (...args) {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func.apply(this, args), wait);
+  };
+};
+
 // Member card to display individual member's data
 const MemberCard = ({ member }) => {
   return (
@@ -106,6 +115,7 @@ const MembersGrid = () => {
   const { members, status, error } = useSelector((state) => state.members);
 
   const [filteredMembers, setFilteredMembers] = useState(members);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     dispatch(fetchMembers());
@@ -115,17 +125,27 @@ const MembersGrid = () => {
     setFilteredMembers(members);
   }, [members]);
 
-  const handleSearch = (query) => {
+  const fetchSearchResults = async (query) => {
     if (query) {
-      const filtered = members.filter(
-        (member) =>
-          member.name.toLowerCase().includes(query.toLowerCase()) ||
-          member.description.toLowerCase().includes(query.toLowerCase())
-      );
-      setFilteredMembers(filtered);
+      try {
+        const response = await fetch(
+          `http://localhost:8080/api/partners/search?query=${query}`
+        );
+        const data = await response.json();
+        setFilteredMembers(data);
+      } catch (error) {
+        console.error("Error fetching search results:", error);
+      }
     } else {
       setFilteredMembers(members);
     }
+  };
+
+  const debouncedFetchSearchResults = debounce(fetchSearchResults, 300);
+
+  const handleSearch = (query) => {
+    setSearchQuery(query);
+    debouncedFetchSearchResults(query);
   };
 
   let content;
