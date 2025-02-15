@@ -3,37 +3,41 @@ import Link from "next/link";
 import React from "react";
 import { useEffect, useState } from "react";
 import { CiMenuKebab } from "react-icons/ci";
+import axios from "axios"; // Import axios
 
-const ProfileDetails = () => {
+const ProfileDetails = ({ id }) => {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null); // Add error state
 
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const response = await fetch("http://localhost:8080/api/profile/me", {
-          method: "GET",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-        });
+        const response = await axios.get(
+          `http://localhost:8080/api/profile/${id}`,
+          {
+            withCredentials: true, // Include credentials
+            headers: { "Content-Type": "application/json" },
+          }
+        );
 
-        if (response.ok) {
-          const data = await response.json();
-          setProfile(data);
-        } else {
-          console.error("Failed to fetch profile data");
+        if (response.data) {
+          console.log(response.data);
+          setProfile(response.data); // Set profile data from response
         }
       } catch (error) {
         console.error("Error fetching profile:", error);
+        setError("Failed to fetch profile data. Please try again later."); // Set error message
       } finally {
         setLoading(false);
       }
     };
 
     fetchProfile();
-  }, []);
+  }, [id]); // Add `id` to the dependency array
 
   if (loading) return <div>Loading...</div>;
+  if (error) return <div>{error}</div>; // Display error message
   if (!profile) return <div>No profile data found.</div>;
 
   // Calculate age from dateOfBirth
@@ -42,6 +46,9 @@ const ProfileDetails = () => {
     const ageDate = new Date(diff);
     return Math.abs(ageDate.getUTCFullYear() - 1970);
   };
+
+  // Destructure profile and member from the response
+  const { profile: profileData, member: memberData } = profile;
 
   return (
     <div className="min-h-screen bg-amber-50/80">
@@ -58,12 +65,12 @@ const ProfileDetails = () => {
       <main className="max-w-6xl mx-auto px-4 py-5 grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="col-span-3 top-1/2 flex flex-col items-center left-1/2 transform -translate-y-20 text-center">
           <img
-            src={profile.profilePicture}
+            src={memberData.profilePictureUrl || "/default-profile.png"} // Fallback for missing profile picture
             alt="Profile"
             className="w-44 h-44 rounded-full border-4 border-white object-cover"
           />
           <h1 className="mt-3 text-2xl font-semibold">
-            {profile.name}, {calculateAge(profile.dateOfBirth)}
+            {profileData.name}, {calculateAge(profileData.dateOfBirth)}
           </h1>
           <p className="text-gray-500">Active recently</p>
           <div className="flex justify-center space-x-4 mt-4">
@@ -87,10 +94,24 @@ const ProfileDetails = () => {
           <h2 className="font-bold mb-2">Languages</h2>
           <div className="space-y-2">
             <div>
-              <h3 className="font-semibold text-sm">PRIMARY</h3>
+              <h3 className="font-semibold text-sm">NATIVE</h3>
               <p className="text-gray-700 flex items-center">
                 <span className="mr-2">🌐</span>
-                {profile.language} ({profile.proficiencyLevel})
+                {profileData.nativeLanguage || "Not specified"}
+              </p>
+            </div>
+            <div>
+              <h3 className="font-semibold text-sm">FLUENT</h3>
+              <p className="text-gray-700 flex items-center">
+                <span className="mr-2">🌐</span>
+                {profileData.fluentLanguage || "Not specified"}
+              </p>
+            </div>
+            <div>
+              <h3 className="font-semibold text-sm">LEARNING</h3>
+              <p className="text-gray-700 flex items-center">
+                <span className="mr-2">🌐</span>
+                {profileData.learningLanguage || "Not specified"}
               </p>
             </div>
           </div>
@@ -98,56 +119,63 @@ const ProfileDetails = () => {
 
         {/* About Section */}
         <section className="bg-white border p-4 rounded-lg">
-          <h2 className="font-bold mb-2">About {profile.name.split(",")[0]}</h2>
+          <h2 className="font-bold mb-2">
+            About {profileData.name.split(" ")[0]}
+          </h2>
           <p className="text-sm text-gray-600 flex items-center mb-1">
             <span className="mr-2">📍</span>
-            {profile.location || "Location not specified"}
+            {profileData.location || "Location not specified"}
           </p>
           <p className="text-sm text-gray-600 flex items-center mb-1">
-            <span className="mr-2">🆔</span>@{profile.tandemID}
+            <span className="mr-2">🆔</span>@{profileData.tandemID}
           </p>
 
-          <h3 className="font-semibold mt-4">Language Proficiency</h3>
-          <p className="text-gray-700 capitalize">{profile.proficiencyLevel}</p>
-
-          <h3 className="font-semibold mt-4">Learning Preferences</h3>
+          <h3 className="font-semibold mt-4">Description</h3>
           <p className="text-gray-700">
-            {profile.showLocation ? "Shares location" : "Hides location"}
+            {profileData.description || "No description provided."}
+          </p>
+
+          <h3 className="font-semibold mt-4">Learning Goals</h3>
+          <p className="text-gray-700">
+            {profileData.learningGoals || "Not specified"}
+          </p>
+
+          <h3 className="font-semibold mt-4">Partner Preference</h3>
+          <p className="text-gray-700">
+            {profileData.partnerPreference || "Not specified"}
           </p>
         </section>
 
-        <section>
-          {/* Topics Section */}
-          <section className="bg-white border p-4 rounded-lg">
-            <h2 className="font-bold mb-2">Topics of Interest</h2>
-            <div className="flex flex-wrap gap-2">
-              {profile.topics?.map((topic, index) => (
-                <span
-                  key={index}
-                  className="bg-gray-100 px-3 py-1 rounded-full text-sm"
-                >
-                  {topic}
-                </span>
-              ))}
-            </div>
-          </section>
+        {/* Topics Section */}
+        <section className="bg-white border p-4 rounded-lg">
+          <h2 className="font-bold mb-2">Topics of Interest</h2>
+          <div className="flex flex-wrap gap-2">
+            {profileData.topics?.map((topic, index) => (
+              <span
+                key={index}
+                className="bg-gray-100 px-3 py-1 rounded-full text-sm"
+              >
+                {topic || "No topics specified"}
+              </span>
+            ))}
+          </div>
+        </section>
 
-          {/* Photos Section */}
-          <section className="col-span-1 border md:col-span-3 mt-4 bg-white p-4 rounded-lg">
-            <h2 className="font-bold mb-2">Photos</h2>
-            <div className="grid grid-cols-3 gap-2">
-              {Array(6)
-                .fill()
-                .map((_, index) => (
-                  <img
-                    key={index}
-                    src={profile.profilePicture}
-                    alt={`Photo ${index + 1}`}
-                    className="w-full h-24 object-cover rounded"
-                  />
-                ))}
-            </div>
-          </section>
+        {/* Photos Section */}
+        <section className="col-span-1 border md:col-span-3 mt-4 bg-white p-4 rounded-lg">
+          <h2 className="font-bold mb-2">Photos</h2>
+          <div className="grid grid-cols-3 gap-2">
+            {Array(6)
+              .fill()
+              .map((_, index) => (
+                <img
+                  key={index}
+                  src={memberData.profilePictureUrl || "/default-profile.png"} // Fallback for missing photos
+                  alt={`Photo ${index + 1}`}
+                  className="w-full h-24 object-cover rounded"
+                />
+              ))}
+          </div>
         </section>
       </main>
     </div>

@@ -349,4 +349,29 @@ router.post(
   }
 );
 
+router.get("/:id", async (req, res) => {
+  try {
+    const userId = req.params.id;
+    console.log(userId);
+    // Fetch the profile by userId
+    const profile = await Profile.findOne({ userId: userId });
+
+    if (!profile) {
+      return res.status(404).json({ message: "Profile not found" });
+    }
+
+    // Fetch the related member by userId
+    const member = await Member.findOne({ user: userId });
+
+    // Return the profile and member data
+    res.json({
+      profile,
+      member: member || null,
+    });
+  } catch (error) {
+    console.error("Error fetching profile:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+});
+
 module.exports = router;

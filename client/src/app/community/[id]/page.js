@@ -1,10 +1,14 @@
-import ProfileDetails from '@/components/profile/ProfileDetails'
-import React from 'react'
+import ProfileDetails from "@/components/profile/ProfileDetails";
+import React from "react";
 
-const page = () => {
+const page = ({ params }) => {
+  const { id } = params;
+
   return (
-    <div><ProfileDetails/></div>
-  )
-}
+    <div>
+      <ProfileDetails id={id} />
+    </div>
+  );
+};
 
-export default page
+export default page;
