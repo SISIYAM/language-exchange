@@ -8,6 +8,7 @@ const authRoutes = require("./routes/authRoutes.js");
 const userRoutes = require("./routes/userRoutes.js");
 const profileRoutes = require("./routes/profileRoutes.js");
 const memberRoutes = require("./routes/memberRoutes.js");
+const partnerRoutes = require("./routes/partnerRoutes.js");
 
 dotenv.config();
 const app = express();
@@ -22,6 +23,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/members", memberRoutes);
+app.use("/api/partners", partnerRoutes);
 
 // Serve static files from the "uploads" directory
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
