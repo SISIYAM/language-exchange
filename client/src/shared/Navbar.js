@@ -2,11 +2,13 @@
 import UserMenu from "@/components/ui/UserMenu";
 import { useLanguage } from "@/context/LanguageContext";
 import { fetchLoggedInUser } from "@/features/user/userSlice";
+import { fetchProfile } from "@/features/user/profileSlice";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import Cookies from "js-cookie";
 
 const privet = ["/login", "/sign-up", "/forgot-password", "/reset-password"];
 
@@ -14,12 +16,24 @@ const Navbar = () => {
   const { t } = useLanguage();
   const pathName = usePathname();
   const dispatch = useDispatch();
-  const { currentUser, loading, error } = useSelector((state) => state.user);
+  const { currentUser, loading } = useSelector((state) => state.user);
 
   useEffect(() => {
-    // Dispatch the thunk to fetch the logged-in user's details
-    dispatch(fetchLoggedInUser());
+    const token = Cookies.get("token");
+    if (token) {
+      // Fetch both user and profile data
+      const fetchData = async () => {
+        try {
+          await dispatch(fetchLoggedInUser()).unwrap();
+          await dispatch(fetchProfile()).unwrap();
+        } catch (err) {
+          console.error("Error fetching user data:", err);
+        }
+      };
+      fetchData();
+    }
   }, [dispatch]);
+
   const navList = [
     { name: t("nav.findPartner"), url: "community" },
     { name: t("nav.chat"), url: "chat" },
@@ -58,7 +72,7 @@ const Navbar = () => {
       } ${isSticky ? "bg-white" : "bg-transparent"} ${
         pathName === "/dashboard" && "hidden"
       }`}
-      style={{ top: pathName === "/blog" ? "-16px" : "0px" }} // Adjust for blog positioning
+      style={{ top: pathName === "/blog" ? "-16px" : "0px" }}
     >
       <div className="max-w-[1440px] mx-auto flex justify-between items-center px-5 py-2">
         <div className="flex items-center justify-between lg:w-1/2">
@@ -94,38 +108,42 @@ const Navbar = () => {
           )}
         </div>
 
-        {!currentUser && (
-          <div className="flex space-x-7">
-            {pathName !== "/login" && (
-              <Link href={"/login"}>
-                <button
-                  className={` ${
-                    pathName === "/blog"
-                      ? `${
-                          !isSticky
-                            ? "text-white border-white"
-                            : "text-[#074C77] border-[#074C77]"
-                        } `
-                      : "text-[#074C77] border-[#074C77]"
-                  } ${
-                    !isSticky ? " text-[#074C77] border-[#074C77]" : ""
-                  }  text-base font-normal border-2 py-2 px-10 rounded-full hover:bg-[#074C77] hover:text-white`}
-                >
-                  {t("loginButton")}
-                </button>
-              </Link>
+        {!loading && (
+          <>
+            {!currentUser ? (
+              <div className="flex space-x-7">
+                {pathName !== "/login" && (
+                  <Link href={"/login"}>
+                    <button
+                      className={`${
+                        pathName === "/blog"
+                          ? `${
+                              !isSticky
+                                ? "text-white border-white"
+                                : "text-[#074C77] border-[#074C77]"
+                            }`
+                          : "text-[#074C77] border-[#074C77]"
+                      } ${
+                        !isSticky ? "text-[#074C77] border-[#074C77]" : ""
+                      } text-base font-normal border-2 py-2 px-10 rounded-full hover:bg-[#074C77] hover:text-white`}
+                    >
+                      {t("loginButton")}
+                    </button>
+                  </Link>
+                )}
+                {pathName !== "/sign-up" && (
+                  <Link href={"/sign-up"}>
+                    <button className="hover:text-[#074C77] hover:bg-transparent text-base font-normal border-2 border-[#074C77] py-2 px-10 rounded-full bg-[#074C77] text-white">
+                      {t("signupButton")}
+                    </button>
+                  </Link>
+                )}
+              </div>
+            ) : (
+              <UserMenu />
             )}
-            {pathName !== "/sign-up" && (
-              <Link href={"/sign-up"}>
-                <button className="hover:text-[#074C77] hover:bg-transparent text-base font-normal border-2 border-[#074C77] py-2 px-10 rounded-full bg-[#074C77] text-white">
-                  {t("signupButton")}
-                </button>
-              </Link>
-            )}
-          </div>
+          </>
         )}
-
-        {currentUser && <UserMenu />}
       </div>
     </div>
   );

@@ -5,11 +5,18 @@ import { AiTwotoneEdit } from "react-icons/ai";
 import Cookies from "js-cookie";
 import { fetchProfile, updateProfile } from "@/features/user/profileSlice";
 import { fetchLoggedInUser } from "@/features/user/userSlice";
+import { useRouter } from "next/navigation";
+import { logout } from "@/features/user/userSlice";
+import toast from "react-hot-toast";
 
 const ProfileForm = () => {
   const dispatch = useDispatch();
   const { profile, status, error } = useSelector((state) => state.profile);
   const { currentUser } = useSelector((state) => state.user);
+  const [isLoading, setIsLoading] = useState(false);
+  const [saveError, setSaveError] = useState(null);
+  const [successMessage, setSuccessMessage] = useState("");
+  const router = useRouter();
 
   const [activeTab, setActiveTab] = useState("About me");
   const [formData, setFormData] = useState({
@@ -23,9 +30,9 @@ const ProfileForm = () => {
     learningGoals: "",
 
     // Languages
-    nativeLanguage: "English (English)",
-    fluentLanguage: "French (Français)",
-    learningLanguage: "Chinese (Traditional) (中文 (繁體))",
+    nativeLanguage: "",
+    fluentLanguage: "",
+    learningLanguage: "",
     translateLanguage: "",
 
     // Learning Preferences
@@ -52,8 +59,15 @@ const ProfileForm = () => {
 
   // Fetch profile and user data on component mount
   useEffect(() => {
-    dispatch(fetchLoggedInUser());
-    dispatch(fetchProfile());
+    const fetchData = async () => {
+      try {
+        await dispatch(fetchLoggedInUser()).unwrap();
+        await dispatch(fetchProfile()).unwrap();
+      } catch (err) {
+        console.error("Error fetching data:", err);
+      }
+    };
+    fetchData();
   }, [dispatch]);
 
   // Populate form data with fetched profile and user data
@@ -61,50 +75,31 @@ const ProfileForm = () => {
     if (profile) {
       setFormData((prev) => ({
         ...prev,
-        name: profile.name || prev.name,
-        tandemID: profile.tandemID || prev.tandemID,
-        dob:
-          profile.dob && !isNaN(new Date(profile.dob))
-            ? new Date(profile.dob).toISOString().split("T")[0]
-            : prev.dob, // Only format if dob is valid
-        location: profile.location || prev.location,
-        about: profile.about || prev.about,
-        partnerPreference: profile.partnerPreference || prev.partnerPreference,
-        learningGoals: profile.learningGoals || prev.learningGoals,
+        name: profile.name || "",
+        tandemID: profile.tandemID || "",
+        dob: profile.dateOfBirth
+          ? new Date(profile.dateOfBirth).toISOString().split("T")[0]
+          : "",
+        location: profile.location || "",
+        about: profile.about || "",
+        partnerPreference: profile.partnerPreference || "",
+        learningGoals: profile.learningGoals || "",
         nativeLanguage: profile.nativeLanguage || "",
         fluentLanguage: profile.fluentLanguage || "",
         learningLanguage: profile.learningLanguage || "",
-        translateLanguage: profile.translateLanguage || prev.translateLanguage,
+        translateLanguage: profile.translateLanguage || "",
         communication: profile.communication || "Not set",
         timeCommitment: profile.timeCommitment || "Not set",
         learningSchedule: profile.learningSchedule || "Not set",
         correctionPreference: profile.correctionPreference || "Not set",
-        topics: profile.topics || [""],
-        showLocation:
-          profile.showLocation !== undefined ? profile.showLocation : true,
-        showTandemID:
-          profile.showTandemID !== undefined ? profile.showTandemID : true,
-        notifications:
-          profile.notifications !== undefined ? profile.notifications : true,
-        profilePicture: profile.profilePicture || prev.profilePicture,
+        topics: profile.topics || ["Life"],
+        showLocation: profile.showLocation ?? true,
+        showTandemID: profile.showTandemID ?? true,
+        notifications: profile.notifications ?? true,
+        profilePicture: profile.profilePicture || "",
       }));
     }
-    // Populate the form with the logged-in user's name if available
-    if (currentUser) {
-      console.log("Current user:", currentUser);
-      setFormData((prev) => ({
-        ...prev,
-        name: currentUser.name || prev.name,
-        tandemID: currentUser.tandemID || prev.tandemID, // Avoid overwriting if already set
-        dob: currentUser.dob
-          ? new Date(currentUser.dob).toISOString().split("T")[0]
-          : prev.dob, // Format dob
-        profilePicture: currentUser.image || prev.profilePicture,
-      }));
-    }
-
-    console.log("FormData State:", formData); // Log to check if data is being populated correctly
-  }, [profile, currentUser]);
+  }, [profile]);
 
   const menuItems = [
     { label: "About me" },
@@ -117,29 +112,30 @@ const ProfileForm = () => {
     { label: "Log out" },
   ];
 
-  const handleSave = () => {
-    const token = Cookies.get("token");
+  const handleSave = async () => {
+    setIsLoading(true);
+    setSaveError(null);
+    setSuccessMessage("");
 
-    if (!token) {
-      alert("No token found. Please log in again.");
-      return;
+    try {
+      const token = Cookies.get("token");
+      if (!token) {
+        throw new Error("No token found. Please log in again.");
+      }
+
+      await dispatch(updateProfile(formData)).unwrap();
+      setSuccessMessage("Profile saved successfully!");
+
+      // Refresh profile data
+      await dispatch(fetchProfile()).unwrap();
+    } catch (error) {
+      console.error("Error saving profile:", error);
+      setSaveError(
+        error.message || "An error occurred while saving the profile."
+      );
+    } finally {
+      setIsLoading(false);
     }
-
-    // Dispatch the updateProfile action with formData
-    dispatch(updateProfile(formData))
-      .unwrap()
-      .then(() => {
-        alert("Profile saved successfully!");
-      })
-      .catch((error) => {
-        // Log the error object for detailed debugging
-        console.error("Error saving profile:", error);
-
-        // Display a more detailed error message to the user
-        const errorMessage =
-          error.message || "An error occurred while saving the profile.";
-        alert(errorMessage);
-      });
   };
 
   const handleInputChange = (field, value) => {
@@ -178,6 +174,20 @@ const ProfileForm = () => {
     }));
   };
 
+  const handleMenuItemClick = async (label) => {
+    if (label === "Log out") {
+      try {
+        await dispatch(logout()).unwrap();
+        toast.success("Logged out successfully");
+        router.push("/login");
+      } catch (error) {
+        toast.error(error.message || "Failed to logout");
+      }
+    } else {
+      setActiveTab(label);
+    }
+  };
+
   const renderTabContent = () => {
     switch (activeTab) {
       case "About me":
@@ -186,37 +196,67 @@ const ProfileForm = () => {
             <div className="flex items-end mb-8">
               <div className="relative">
                 <img
-                  src={formData.profilePicture}
+                  src={
+                    formData.profilePicture
+                      ? `http://localhost:8080${formData.profilePicture}`
+                      : "/default-avatar.png"
+                  }
                   alt="Profile"
                   className="rounded-full w-44 h-44 object-cover border border-gray-300"
                 />
-                <button className="absolute bottom-0 right-0 bg-white p-2 rounded-full shadow-lg">
+                <label
+                  htmlFor="profile-picture-input"
+                  className="absolute bottom-0 right-0 bg-white p-2 rounded-full shadow-lg cursor-pointer hover:bg-gray-100"
+                >
                   <AiTwotoneEdit size={20} />
-                </button>
+                </label>
+                <input
+                  id="profile-picture-input"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleProfilePictureChange}
+                  disabled={isLoading}
+                />
               </div>
             </div>
+
+            {saveError && (
+              <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
+                {saveError}
+              </div>
+            )}
+            {successMessage && (
+              <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative">
+                {successMessage}
+              </div>
+            )}
 
             <div className="space-y-4">
               <FormField
                 label="Name"
                 value={formData.name}
                 onChange={(e) => handleInputChange("name", e.target.value)}
+                required
               />
               <FormField
                 label="Tandem ID"
                 value={formData.tandemID}
                 onChange={(e) => handleInputChange("tandemID", e.target.value)}
+                required
               />
               <FormField
                 label="Date of Birth"
                 type="date"
                 value={formData.dob}
                 onChange={(e) => handleInputChange("dob", e.target.value)}
+                required
               />
               <FormField
                 label="Location"
                 value={formData.location}
                 onChange={(e) => handleInputChange("location", e.target.value)}
+                required
               />
             </div>
 
@@ -466,15 +506,19 @@ const ProfileForm = () => {
 
             <div className="space-y-4">
               <h3 className="text-lg font-semibold text-red-500">
-                Delete account
+                Account Actions
               </h3>
-              <p className="text-gray-500">
-                This action cannot be undone. All your data will be permanently
-                deleted.
-              </p>
-              <button className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600">
-                Delete Account
-              </button>
+              <div className="flex flex-col gap-4">
+                <button
+                  onClick={() => handleMenuItemClick("Log out")}
+                  className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 w-full"
+                >
+                  Log Out
+                </button>
+                <button className="border border-red-500 text-red-500 px-4 py-2 rounded-lg hover:bg-red-50 w-full">
+                  Delete Account
+                </button>
+              </div>
             </div>
           </div>
         );
@@ -496,6 +540,70 @@ const ProfileForm = () => {
     }
   };
 
+  const handleProfilePictureChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setSaveError("Please upload an image file");
+      return;
+    }
+
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      setSaveError("Image size should be less than 5MB");
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      setSaveError(null);
+      const formData = new FormData();
+      formData.append("profilePicture", file);
+
+      const token = Cookies.get("token");
+      if (!token) {
+        throw new Error("No token found. Please log in again.");
+      }
+
+      // Note: Don't set Content-Type header, let the browser set it with the boundary
+      const response = await fetch(
+        "http://localhost:8080/api/profile/upload-picture",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
+          credentials: "include",
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to upload image");
+      }
+
+      const data = await response.json();
+
+      // Update the form data with the new image URL
+      setFormData((prev) => ({
+        ...prev,
+        profilePicture: data.imageUrl,
+      }));
+
+      setSuccessMessage("Profile picture updated successfully!");
+
+      // Refresh profile data
+      await dispatch(fetchProfile()).unwrap();
+    } catch (error) {
+      console.error("Profile picture upload error:", error);
+      setSaveError(error.message || "Failed to upload profile picture");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex justify-center py-12">
       <div className="w-full max-w-[1300px] mx-auto">
@@ -511,7 +619,7 @@ const ProfileForm = () => {
                       ? "md:bg-gray-200 text-blue-500"
                       : "text-[#222]"
                   } rounded-full px-7 py-2 cursor-pointer transition-all`}
-                  onClick={() => setActiveTab(item.label)}
+                  onClick={() => handleMenuItemClick(item.label)}
                 >
                   {item.label}
                 </li>
@@ -547,7 +655,13 @@ const ProfileForm = () => {
 };
 
 // Reusable Components
-const FormField = ({ label, value, onChange, type = "text" }) => (
+const FormField = ({
+  label,
+  value,
+  onChange,
+  type = "text",
+  required = false,
+}) => (
   <div className="border-b py-4">
     <label className="block text-lg font-semibold mb-2">{label}</label>
     <input
@@ -555,6 +669,7 @@ const FormField = ({ label, value, onChange, type = "text" }) => (
       value={value}
       onChange={onChange}
       className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+      required={required}
     />
   </div>
 );

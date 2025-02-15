@@ -34,37 +34,135 @@ router.post("/", protect, async (req, res) => {
   }
 });
 
-// Get all members
+// @route   GET /api/members
+// @desc    Get all members
+// @access  Public
 router.get("/", async (req, res) => {
   try {
-    const { search, country, status } = req.query;
-    const query = {};
+    const members = await Member.find()
+      .populate("user", "name email")
+      .select("-__v")
+      .lean();
 
-    if (search) {
-      query.$or = [
-        { name: { $regex: search, $options: "i" } },
-        { description: { $regex: search, $options: "i" } },
-      ];
-    }
+    // Add the full profile picture URL for each member
+    const membersWithUrls = members.map((member) => ({
+      ...member,
+      profilePicture: member.profilePicture
+        ? `http://localhost:8080${member.profilePicture}`
+        : "/default-avatar.png",
+    }));
 
-    if (country) query.country = country;
-    if (status) query.status = status;
-
-    const members = await Member.find(query);
-    res.json(members);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.json(membersWithUrls);
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 });
 
-// Get single member
+// @route   GET /api/members/search
+// @desc    Search members by name, description, or languages
+// @access  Public
+router.get("/search", async (req, res) => {
+  try {
+    const { query } = req.query;
+    const searchRegex = new RegExp(query, "i");
+
+    const members = await Member.find({
+      $or: [
+        { name: searchRegex },
+        { description: searchRegex },
+        { "speaks.language": searchRegex },
+        { "learns.language": searchRegex },
+      ],
+    })
+      .populate("user", "name email")
+      .select("-__v")
+      .lean();
+
+    // Add the full profile picture URL for each member
+    const membersWithUrls = members.map((member) => ({
+      ...member,
+      profilePicture: member.profilePicture
+        ? `http://localhost:8080${member.profilePicture}`
+        : "/default-avatar.png",
+    }));
+
+    res.json(membersWithUrls);
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+});
+
+// @route   GET /api/members/nearby
+// @desc    Get members by location
+// @access  Private
+router.get("/nearby", protect, async (req, res) => {
+  try {
+    const { latitude, longitude, maxDistance = 100 } = req.query;
+
+    const members = await Member.find({
+      location: {
+        $near: {
+          $geometry: {
+            type: "Point",
+            coordinates: [parseFloat(longitude), parseFloat(latitude)],
+          },
+          $maxDistance: parseInt(maxDistance) * 1000, // Convert km to meters
+        },
+      },
+    })
+      .populate("user", "name email")
+      .select("-__v");
+
+    res.json(members);
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+});
+
+// @route   GET /api/members/:id
+// @desc    Get member by ID
+// @access  Public
 router.get("/:id", async (req, res) => {
   try {
-    const member = await Member.findById(req.params.id);
-    if (!member) return res.status(404).json({ message: "Member not found" });
+    const member = await Member.findById(req.params.id)
+      .populate("user", "name email")
+      .select("-__v");
+
+    if (!member) {
+      return res.status(404).json({ message: "Member not found" });
+    }
+
     res.json(member);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+});
+
+// @route   PUT /api/members/:id
+// @desc    Update member
+// @access  Private
+router.put("/:id", protect, async (req, res) => {
+  try {
+    const member = await Member.findById(req.params.id);
+
+    if (!member) {
+      return res.status(404).json({ message: "Member not found" });
+    }
+
+    // Check if the user owns this member profile
+    if (member.user.toString() !== req.user._id.toString()) {
+      return res.status(401).json({ message: "Not authorized" });
+    }
+
+    const updatedMember = await Member.findByIdAndUpdate(
+      req.params.id,
+      { $set: req.body },
+      { new: true }
+    ).populate("user", "name email");
+
+    res.json(updatedMember);
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 });
 

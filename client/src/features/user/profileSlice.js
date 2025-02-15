@@ -2,6 +2,17 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axios from "axios";
 import Cookies from "js-cookie"; // Import Cookies for handling JWT tokens
 
+// Configure axios defaults
+axios.defaults.baseURL =
+  process.env.REACT_APP_API_URL || "http://localhost:8080";
+axios.interceptors.request.use((config) => {
+  const token = Cookies.get("token");
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
 // Define API URL
 const API_URL = "http://localhost:8080/api/profile";
 
@@ -39,16 +50,11 @@ export const fetchProfile = createAsyncThunk(
   "profile/fetchProfile",
   async (_, { rejectWithValue }) => {
     try {
-      const token = validateToken();
-      const response = await axios.get(`${API_URL}/me`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await axios.get("/api/profile/me");
       return response.data;
     } catch (error) {
       return rejectWithValue(
-        error.response ? error.response.data : error.message
+        error.response?.data?.message || "Failed to fetch profile"
       );
     }
   }
@@ -59,17 +65,11 @@ export const updateProfile = createAsyncThunk(
   "profile/updateProfile",
   async (profileData, { rejectWithValue }) => {
     try {
-      const token = validateToken();
-      const response = await axios.put(`${API_URL}/me`, profileData, {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await axios.put("/api/profile/me", profileData);
       return response.data;
     } catch (error) {
       return rejectWithValue(
-        error.response ? error.response.data : error.message
+        error.response?.data?.message || "Failed to update profile"
       );
     }
   }
@@ -80,16 +80,11 @@ export const deleteProfile = createAsyncThunk(
   "profile/deleteProfile",
   async (_, { rejectWithValue }) => {
     try {
-      const token = validateToken();
-      const response = await axios.delete(`${API_URL}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await axios.delete("/api/profile");
       return response.data;
     } catch (error) {
       return rejectWithValue(
-        error.response ? error.response.data : error.message
+        error.response?.data?.message || "Failed to delete profile"
       );
     }
   }
@@ -100,7 +95,7 @@ const profileSlice = createSlice({
   name: "profile",
   initialState: {
     profile: null,
-    status: "idle", // 'idle', 'loading', 'succeeded', 'failed'
+    status: "idle", // idle | loading | succeeded | failed
     error: null,
   },
   reducers: {
@@ -110,21 +105,18 @@ const profileSlice = createSlice({
       state.status = "idle";
       state.error = null;
     },
-    // Reset status and error
-    resetStatus: (state) => {
-      state.status = "idle";
-      state.error = null;
-    },
   },
   extraReducers: (builder) => {
     builder
       // Fetch profile
       .addCase(fetchProfile.pending, (state) => {
         state.status = "loading";
+        state.error = null;
       })
       .addCase(fetchProfile.fulfilled, (state, action) => {
         state.status = "succeeded";
         state.profile = action.payload;
+        state.error = null;
       })
       .addCase(fetchProfile.rejected, (state, action) => {
         state.status = "failed";
@@ -134,10 +126,12 @@ const profileSlice = createSlice({
       // Update profile
       .addCase(updateProfile.pending, (state) => {
         state.status = "loading";
+        state.error = null;
       })
       .addCase(updateProfile.fulfilled, (state, action) => {
         state.status = "succeeded";
-        state.profile = action.payload;
+        state.profile = action.payload.profile;
+        state.error = null;
       })
       .addCase(updateProfile.rejected, (state, action) => {
         state.status = "failed";
@@ -160,10 +154,11 @@ const profileSlice = createSlice({
       // Delete profile
       .addCase(deleteProfile.pending, (state) => {
         state.status = "loading";
+        state.error = null;
       })
       .addCase(deleteProfile.fulfilled, (state) => {
         state.status = "succeeded";
-        state.profile = null; // Reset profile on successful deletion
+        state.profile = null;
       })
       .addCase(deleteProfile.rejected, (state, action) => {
         state.status = "failed";
@@ -173,7 +168,7 @@ const profileSlice = createSlice({
 });
 
 // Export actions
-export const { resetProfile, resetStatus } = profileSlice.actions;
+export const { resetProfile } = profileSlice.actions;
 
 // Export reducer
 export default profileSlice.reducer;

@@ -2,6 +2,7 @@ import axiosInstance from "@/config/axiosConfig";
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axios from "axios";
 import Cookies from "js-cookie"; // Import js-cookie for handling cookies
+import { resetProfile } from "./profileSlice";
 
 // Define API URL
 const API_URL = "http://localhost:8080/api/auth";
@@ -52,10 +53,12 @@ export const fetchLoggedInUser = createAsyncThunk(
   "user/fetchLoggedInUser",
   async (_, { rejectWithValue }) => {
     try {
-      const response = await axiosInstance.get(`${API_URL}/verify/me`);
+      const response = await axios.get("/api/auth/verify/me");
       return response.data;
     } catch (error) {
-      return rejectWithValue(error.response.data);
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to fetch user"
+      );
     }
   }
 );
@@ -130,6 +133,30 @@ export const resetPassword = createAsyncThunk(
   }
 );
 
+// Logout user
+export const logout = createAsyncThunk(
+  "user/logout",
+  async (_, { dispatch, rejectWithValue }) => {
+    try {
+      // Call the logout endpoint
+      await axios.post("/api/auth/logout");
+
+      // Remove the token
+      Cookies.remove("token");
+
+      // Reset the profile state
+      dispatch(resetProfile());
+
+      // Clear axios default authorization header
+      delete axios.defaults.headers.common["Authorization"];
+
+      return null;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || "Logout failed");
+    }
+  }
+);
+
 // User slice
 const userSlice = createSlice({
   name: "user",
@@ -157,6 +184,7 @@ const userSlice = createSlice({
       .addCase(fetchLoggedInUser.fulfilled, (state, action) => {
         state.loading = false;
         state.currentUser = action.payload;
+        state.error = null;
       })
       .addCase(fetchLoggedInUser.rejected, (state, action) => {
         state.loading = false;
@@ -249,10 +277,23 @@ const userSlice = createSlice({
       .addCase(resetPassword.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
+      })
+      .addCase(logout.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(logout.fulfilled, (state) => {
+        state.loading = false;
+        state.currentUser = null;
+        state.error = null;
+      })
+      .addCase(logout.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
       });
   },
 });
 
 // Export actions and reducer
-export const { logout } = userSlice.actions;
+export const { logout: userSliceLogout } = userSlice.actions;
 export default userSlice.reducer;

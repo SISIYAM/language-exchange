@@ -27,83 +27,83 @@ const generateToken = (res, userId) => {
   return token;
 };
 
-// @route   POST /api/auth/signup
-router.post("/signup", async (req, res) => {
-  const { name, email, password, country, dob, tandemID } = req.body;
-
+// @route   POST /api/auth/register
+// @desc    Register a new user
+// @access  Public
+router.post("/register", async (req, res) => {
   try {
+    const { name, email, password } = req.body;
+
+    // Check if user exists
     const userExists = await User.findOne({ email });
     if (userExists) {
       return res.status(400).json({ message: "User already exists" });
     }
 
-    const user = await User.create({ name, email, password });
+    // Create user
+    const user = await User.create({
+      name,
+      email,
+      password,
+      tandemID: `user_${Date.now()}`,
+    });
 
-    if (user) {
-      const token = generateToken(res, user._id);
-      console.log("Creating profile with userId:", user._id);
+    // Create profile for the user
+    const profile = await Profile.create({
+      userId: user._id,
+      name: user.name,
+      tandemID: user.tandemID,
+      dateOfBirth: null,
+      location: "",
+      description: "",
+      speaks: [],
+      learns: [],
+      about: "",
+      partnerPreference: "",
+      learningGoals: "",
+      nativeLanguage: "",
+      fluentLanguage: "",
+      learningLanguage: "",
+      translateLanguage: "",
+      communication: "Not set",
+      timeCommitment: "Not set",
+      learningSchedule: "Not set",
+      correctionPreference: "Not set",
+      topics: ["Life"],
+      showLocation: true,
+      showTandemID: true,
+      notifications: true,
+      profilePicture: "",
+    });
 
-      // Create profile
-      const newProfile = new Profile({
-        userId: user._id,
-        name: user.name,
-        tandemID,
-        dateOfBirth: dob,
-        location: country,
-        description: "",
-        speaks: [], // No need for .split(",")
-        learns: [],
-        about: "",
-        partnerPreference: "",
-        learningGoals: "",
-        nativeLanguage: "",
-        fluentLanguage: "",
-        learningLanguage: "",
-        translateLanguage: "",
-        communication: "Not set",
-        timeCommitment: "Not set",
-        learningSchedule: "Not set",
-        correctionPreference: "Not set",
-        topics: [""],
-        showLocation: true,
-        showTandemID: true,
-        notifications: true,
-        profilePicture: null,
-      });
+    // Create member record
+    const member = await Member.create({
+      user: user._id,
+      name: user.name,
+      description: "",
+      speaks: [],
+      learns: [],
+    });
 
-      await newProfile.save();
-      console.log("Profile created successfully");
+    // Generate JWT token
+    const token = generateToken(res, user._id);
 
-      // Create member profile
-      const newMember = new Member({
-        user: user._id, // Associate member with the created user
-        name: user.name, // Get name from User model
-        description: newProfile.description,
-        country,
-        speaks: newProfile.speaks, // Use directly
-        learns: newProfile.learns, // Use directly
-        image: null,
-        status: "offline", // Default status
-      });
+    // Set token in cookie
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+    });
 
-      await newMember.save(); // Save member AFTER creating it
-
-      res.status(201).json({
-        message: "User registered successfully",
-        user: {
-          name: user.name,
-          email: user.email,
-          tandemID: newProfile.tandemID,
-          dob: newProfile.dateOfBirth,
-          country: newProfile.location, // Include country in response
-        },
-        token,
-      });
-    } else {
-      res.status(400).json({ message: "Invalid user data" });
-    }
+    res.status(201).json({
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      token,
+    });
   } catch (error) {
-    console.error("Signup Error:", error);
+    console.error("Registration error:", error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 });

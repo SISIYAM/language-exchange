@@ -6,11 +6,12 @@ import { FaApple, FaFacebook } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
-import Cookies from "js-cookie"; // Import js-cookie
+import Cookies from "js-cookie";
 import { useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import { loginUser } from "@/features/user/userSlice";
-import { fetchProfile } from "@/features/user/profileSlice"; // Import the fetchProfile action
+import { fetchProfile } from "@/features/user/profileSlice";
+import axios from "axios";
 
 const Login = () => {
   const {
@@ -24,43 +25,27 @@ const Login = () => {
   const { loading, user } = useSelector((state) => state.user);
 
   const onSubmit = async (data) => {
-    dispatch(loginUser(data))
-      .unwrap()
-      .then((response) => {
-        if (response.user) {
-          // Save the token in cookies
-          Cookies.set("token", response.token, {
-            expires: 1,
-            sameSite: "strict",
-          });
-          toast.success("Login successful");
-          reset();
-
-          // Fetch the user's profile after successful login
-          dispatch(fetchProfile()) // Fetch profile after login
-            .unwrap()
-            .then(() => {
-              router.push("/profile"); // Navigate to the home page or profile page
-            })
-            .catch((err) => {
-              toast.error(err?.message || "Profile fetch failed");
-            });
-        } else {
-          toast.error("Login failed!");
-        }
-      })
-      .catch((err) => {
-        console.error("Login error:", err);
-
-        // If the error has a response and a message, show that message
-        if (err.response && err.response.data && err.response.data.message) {
-          toast.error(err.response.data.message);
-        } else {
-          // Fallback error message
-          toast.error("Login failed");
-        }
+    try {
+      const response = await axios.post("/api/auth/login", {
+        email: data.email,
+        password: data.password,
       });
+
+      // Store token in cookie (if not already handled by backend)
+      if (response.data.token) {
+        Cookies.set("token", response.data.token);
+      }
+
+      // Fetch user profile
+      await dispatch(fetchProfile()).unwrap();
+
+      // Redirect to profile page
+      router.push("/profile");
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Login failed");
+    }
   };
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -198,7 +183,7 @@ const Login = () => {
             whileTap={{ scale: 0.95 }}
             type="submit"
             className="w-full bg-[#074c77] text-white py-3 rounded-lg font-semibold hover:bg-cyan-600 transition duration-200"
-            disabled={loading} // Disable button while loading
+            disabled={loading}
           >
             {loading ? "Logging in..." : "Log in"}
           </motion.button>

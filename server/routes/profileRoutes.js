@@ -4,6 +4,8 @@ const User = require("../models/User.js");
 const Member = require("../models/Members.js");
 const { protect } = require("../middleware/authMiddleware.js");
 const upload = require("../config/multerConfig.js");
+const path = require("path");
+const fs = require("fs");
 
 const router = express.Router();
 
@@ -11,29 +13,58 @@ const router = express.Router();
 // @desc    Create a new profile
 // @access  Private
 router.post("/", protect, async (req, res) => {
-  const { name, tandemID, dateOfBirth, location, language, proficiencyLevel } =
-    req.body;
-
   try {
-    const existingProfile = await Profile.findOne({ user: req.user._id });
+    const existingProfile = await Profile.findOne({ userId: req.user._id });
     if (existingProfile) {
       return res.status(400).json({ message: "Profile already exists" });
     }
 
     const profile = new Profile({
-      user: req.user._id,
-      name,
-      tandemID,
-      dateOfBirth,
-      location,
-      language,
-      proficiencyLevel,
+      userId: req.user._id,
+      name: req.user.name,
+      tandemID: req.user.tandemID || `user_${req.user._id}`,
+      dateOfBirth: req.body.dateOfBirth || null,
+      location: req.body.location || "",
+      description: "",
+      speaks: [],
+      learns: [],
+      about: "",
+      partnerPreference: "",
+      learningGoals: "",
+      nativeLanguage: "",
+      fluentLanguage: "",
+      learningLanguage: "",
+      translateLanguage: "",
+      communication: "Not set",
+      timeCommitment: "Not set",
+      learningSchedule: "Not set",
+      correctionPreference: "Not set",
+      topics: ["Life"],
+      showLocation: true,
+      showTandemID: true,
+      notifications: true,
+      profilePicture: "",
     });
 
     const savedProfile = await profile.save();
+
+    // Create a member record if it doesn't exist
+    const existingMember = await Member.findOne({ user: req.user._id });
+    if (!existingMember) {
+      const member = new Member({
+        user: req.user._id,
+        name: req.user.name,
+        description: "",
+        speaks: [],
+        learns: [],
+      });
+      await member.save();
+    }
+
     res.status(201).json(savedProfile);
   } catch (error) {
-    res.status(500).json({ message: "Server error" });
+    console.error("Profile creation error:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 });
 
@@ -42,82 +73,69 @@ router.post("/", protect, async (req, res) => {
 // @access  Private
 router.get("/me", protect, async (req, res) => {
   try {
-    console.log("Fetching profile for user ID:", req.user._id); // Add this line
-    const profile = await Profile.findOne({ userId: req.user._id }).populate(
-      "userId",
-      "name email"
-    );
+    console.log("Fetching profile for user ID:", req.user._id);
+
+    let profile = await Profile.findOne({ userId: req.user._id });
+
+    // If profile doesn't exist, create one
     if (!profile) {
-      console.log("Profile not found for user ID:", req.user._id); // Add this line
-      return res.status(404).json({ message: "Profile not found" });
+      profile = await new Profile({
+        userId: req.user._id,
+        name: req.user.name,
+        tandemID: req.user.tandemID || `user_${req.user._id}`,
+        dateOfBirth: null,
+        location: "",
+        description: "",
+        speaks: [],
+        learns: [],
+        about: "",
+        partnerPreference: "",
+        learningGoals: "",
+        nativeLanguage: "",
+        fluentLanguage: "",
+        learningLanguage: "",
+        translateLanguage: "",
+        communication: "Not set",
+        timeCommitment: "Not set",
+        learningSchedule: "Not set",
+        correctionPreference: "Not set",
+        topics: ["Life"],
+        showLocation: true,
+        showTandemID: true,
+        notifications: true,
+        profilePicture: "",
+      }).save();
+
+      // Create a member record if it doesn't exist
+      const existingMember = await Member.findOne({ user: req.user._id });
+      if (!existingMember) {
+        const member = new Member({
+          user: req.user._id,
+          name: req.user.name,
+          description: "",
+          speaks: [],
+          learns: [],
+        });
+        await member.save();
+      }
     }
-    console.log("Profile found:", profile); // Add this line
+
     res.json(profile);
   } catch (error) {
-    console.error("Server error:", error); // Add this line
-    res.status(500).json({ message: "Server error" });
+    console.error("Profile fetch error:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 });
 
 // @route   PUT /api/profile/me
 // @desc    Update user profile
-// @access  Private (only logged-in users can access)
+// @access  Private
 router.put("/me", protect, async (req, res) => {
-  const {
-    name,
-    tandemID,
-    dateOfBirth,
-    location,
-    description,
-    speaks,
-    learns,
-    about,
-    partnerPreference,
-    learningGoals,
-    nativeLanguage,
-    fluentLanguage,
-    learningLanguage,
-    translateLanguage,
-    communication,
-    timeCommitment,
-    learningSchedule,
-    correctionPreference,
-    topics,
-    showLocation,
-    showTandemID,
-    notifications,
-    profilePicture,
-  } = req.body;
-
   try {
     // Update Profile
     const profile = await Profile.findOneAndUpdate(
-      { userId: req.user.id },
-      {
-        name,
-        tandemID,
-        dateOfBirth,
-        location,
-        description,
-        speaks,
-        learns,
-        about,
-        partnerPreference,
-        learningGoals,
-        nativeLanguage,
-        fluentLanguage,
-        learningLanguage,
-        translateLanguage,
-        communication,
-        timeCommitment,
-        learningSchedule,
-        correctionPreference,
-        topics,
-        showLocation,
-        showTandemID,
-        notifications,
-        profilePicture,
-      },
+      { userId: req.user._id },
+      { ...req.body },
       { new: true }
     );
 
@@ -127,28 +145,27 @@ router.put("/me", protect, async (req, res) => {
 
     // Update the related Member
     const member = await Member.findOneAndUpdate(
-      { user: req.user.id },
+      { user: req.user._id },
       {
-        description,
-        speaks,
-        learns,
+        name: req.body.name,
+        description: req.body.description,
+        speaks: req.body.speaks,
+        learns: req.body.learns,
       },
       { new: true }
     );
 
-    if (!member) {
-      return res.status(404).json({ message: "Member not found" });
-    }
-
     // Return updated profile and member data
     res.json({
       profile,
-      member,
+      member: member || null,
     });
   } catch (error) {
+    console.error("Profile update error:", error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 });
+
 // @route   POST /api/profile/follow/:id
 // @desc    Follow a user
 // @access  Private
@@ -277,30 +294,59 @@ router.post("/disable-notifications", protect, async (req, res) => {
   }
 });
 
-router.post("/upload-picture", protect, (req, res) => {
-  upload(req, res, async (err) => {
-    if (err) {
-      return res.status(400).json({ message: err });
-    }
-
-    if (!req.file) {
-      return res.status(400).json({ message: "No file uploaded" });
-    }
-
+// @route   POST /api/profile/upload-picture
+// @desc    Upload profile picture
+// @access  Private
+router.post(
+  "/upload-picture",
+  protect,
+  upload.single("profilePicture"),
+  async (req, res) => {
     try {
-      const profile = await Profile.findOne({ user: req.user._id });
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+
+      // Convert file path to URL path
+      const relativePath = path
+        .relative(path.join(__dirname, ".."), req.file.path)
+        .replace(/\\/g, "/");
+
+      const imageUrl = `/uploads/profilePictures/${path.basename(
+        req.file.path
+      )}`;
+
+      // Update the profile with the new image URL
+      const profile = await Profile.findOneAndUpdate(
+        { userId: req.user._id },
+        { profilePicture: imageUrl },
+        { new: true }
+      );
+
       if (!profile) {
+        // If profile not found, delete the uploaded file
+        fs.unlinkSync(req.file.path);
         return res.status(404).json({ message: "Profile not found" });
       }
 
-      profile.profilePicture = `/uploads/profilePictures/${req.file.filename}`;
-      await profile.save();
-
-      res.json({ message: "Profile picture uploaded successfully", profile });
+      res.json({
+        message: "Profile picture uploaded successfully",
+        imageUrl: imageUrl,
+      });
     } catch (error) {
-      res.status(500).json({ message: "Server error" });
+      // If there's an error, try to delete the uploaded file
+      if (req.file && req.file.path) {
+        try {
+          fs.unlinkSync(req.file.path);
+        } catch (unlinkError) {
+          console.error("Error deleting file:", unlinkError);
+        }
+      }
+
+      console.error("Profile picture upload error:", error);
+      res.status(500).json({ message: "Error uploading profile picture" });
     }
-  });
-});
+  }
+);
 
 module.exports = router;
