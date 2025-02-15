@@ -49,7 +49,7 @@ const ProfileDetails = ({ id }) => {
 
   // Destructure profile and member from the response
   const { profile: profileData, member: memberData } = profile;
-
+  console.log(profileData);
   return (
     <div className="min-h-screen bg-amber-50/80">
       {/* Header Section */}
@@ -65,7 +65,7 @@ const ProfileDetails = ({ id }) => {
       <main className="max-w-6xl mx-auto px-4 py-5 grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="col-span-3 top-1/2 flex flex-col items-center left-1/2 transform -translate-y-20 text-center">
           <img
-            src={memberData.profilePictureUrl || "/default-profile.png"} // Fallback for missing profile picture
+            src={`http://localhost:8080${profileData.profilePicture}`} // Fallback for missing profile picture
             alt="Profile"
             className="w-44 h-44 rounded-full border-4 border-white object-cover"
           />

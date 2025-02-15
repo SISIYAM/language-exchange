@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const { protect } = require("../middleware/authMiddleware");
 const Member = require("../models/Members");
+const Profile = require("../models/Profile");
 
 // @route   POST /api/members
 // @desc    Create a member profile
@@ -41,6 +42,7 @@ router.get("/", async (req, res) => {
   try {
     const members = await Member.find()
       .populate("user", "name email")
+      .populate("profile")
       .select("-__v")
       .lean();
 
@@ -162,6 +164,25 @@ router.put("/:id", protect, async (req, res) => {
 
     res.json(updatedMember);
   } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+});
+
+router.get("/all/member", async (req, res) => {
+  try {
+    const profiles = await Profile.find().select("-__v").lean();
+
+    const profilesWithUrls = profiles.map((profile) => ({
+      ...profile,
+      profilePicture: profile.profilePicture
+        ? `http://localhost:8080${profile.profilePicture}`
+        : "/default-avatar.png",
+    }));
+
+    // Send the response
+    res.status(200).json(profilesWithUrls);
+  } catch (error) {
+    console.error("Error fetching profiles:", error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 });

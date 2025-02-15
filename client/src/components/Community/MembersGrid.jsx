@@ -1,23 +1,24 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { useDispatch, useSelector } from "react-redux";
 import { FiSearch, FiSliders } from "react-icons/fi";
 import HighlightedProfiles from "./HighlightedProfiles";
 import Link from "next/link";
-import { fetchMembers } from "@/features/user/membersSlice";
+import axios from "axios"; // Import axios for API calls
 
 // Member card to display individual member's data
 const MemberCard = ({ member }) => {
-  console.log(member);
   return (
     <Link
-      href={`/community/${member?.user?._id}`}
-      className="bg-white border rounded-lg p-3 flex items-center space-x-4"
+      href={`/community/${member.userId}`} // Use userId for the link
+      className="bg-white border rounded-lg p-3 flex items-center space-x-4 hover:shadow-lg transition-shadow"
     >
       <img
-        src={member?.image}
-        alt={member?.name}
-        className="w-28 h-full rounded-lg object-cover"
+        src={member.profilePicture || "/default-avatar.png"} // Use profilePicture from the API
+        alt={member.name}
+        className="w-28 h-28 rounded-lg object-cover"
+        onError={(e) => {
+          e.target.src = "/default-avatar.png"; // Fallback for broken images
+        }}
       />
       <div className="flex-1">
         <div className="flex items-center space-x-2 mb-1">
@@ -26,13 +27,13 @@ const MemberCard = ({ member }) => {
               member.status === "online" ? "bg-green-400" : "bg-red-400"
             }`}
           ></span>
-          <h3 className="font-semibold text-lg">{member?.name}</h3>
+          <h3 className="font-semibold text-lg">{member.name}</h3>
         </div>
-        <p className="text-sm text-gray-600">{member?.description}</p>
+        <p className="text-sm text-gray-600">{member.description}</p>
         <div className="flex items-center space-x-2 mt-2 text-sm text-gray-500">
           <div className="flex gap-2 items-center">
             <span className="font-medium text-black">SPEAKS</span>
-            {member?.speaks.map((lang, index) => (
+            {member.speaks.map((lang, index) => (
               <span key={index} className="ml-1">
                 {lang}
               </span>
@@ -103,36 +104,59 @@ const SearchBar = ({ onSearch }) => {
 };
 
 const MembersGrid = () => {
-  const dispatch = useDispatch();
-  const { members, status, error } = useSelector((state) => state.members);
+  const [members, setMembers] = useState([]);
+  const [filteredMembers, setFilteredMembers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const [filteredMembers, setFilteredMembers] = useState(members);
-
+  // Fetch members from the API
   useEffect(() => {
-    dispatch(fetchMembers());
-  }, [dispatch]);
+    const fetchMembers = async () => {
+      try {
+        const response = await axios.get(
+          "http://localhost:8080/api/members/all/member"
+        );
+        setMembers(response.data);
+        console.log(response.data);
+        setFilteredMembers(response.data);
+      } catch (error) {
+        console.error("Error fetching members:", error);
+        setError("Failed to fetch members. Please try again later.");
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  useEffect(() => {
-    setFilteredMembers(members);
-  }, [members]);
+    fetchMembers();
+  }, []);
 
-  const handleSearch = (query) => {
+  // Handle search
+  const handleSearch = async (query) => {
     if (query) {
-      const filtered = members.filter(
-        (member) =>
-          member.name.toLowerCase().includes(query.toLowerCase()) ||
-          member.description.toLowerCase().includes(query.toLowerCase())
-      );
-      setFilteredMembers(filtered);
+      try {
+        // Fetch search results from the API
+        const response = await axios.get(
+          `http://localhost:8080/api/partners/search?query=${query}`
+        );
+        setFilteredMembers(response.data);
+        console.log(response.data);
+      } catch (error) {
+        console.error("Error fetching search results:", error);
+        setError("Failed to fetch search results. Please try again later.");
+      }
     } else {
       setFilteredMembers(members);
     }
   };
 
   let content;
-  if (status === "loading") {
+  if (loading) {
     content = <p>Loading...</p>;
-  } else if (status === "succeeded") {
+  } else if (error) {
+    content = <p>{error}</p>;
+  } else if (filteredMembers.length === 0) {
+    content = <p>No members found.</p>;
+  } else {
     content = (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredMembers.map((member) => (
@@ -140,8 +164,6 @@ const MembersGrid = () => {
         ))}
       </div>
     );
-  } else if (status === "failed") {
-    content = <p>{error}</p>;
   }
 
   return (

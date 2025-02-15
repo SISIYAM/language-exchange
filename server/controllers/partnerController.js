@@ -6,6 +6,7 @@ const searchPartner = async (req, res) => {
     if (!query)
       return res.status(400).json({ error: "Query parameter required" });
 
+    // Search for profiles matching the query
     const results = await Profile.find({
       $or: [
         { name: { $regex: query, $options: "i" } },
@@ -21,7 +22,14 @@ const searchPartner = async (req, res) => {
       ],
     });
 
-    res.json(results);
+    const profilesWithUrls = results.map((profile) => ({
+      ...profile.toObject(),
+      profilePicture: profile.profilePicture
+        ? `http://localhost:8080${profile.profilePicture}`
+        : "/default-avatar.png",
+    }));
+
+    res.json(profilesWithUrls);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
