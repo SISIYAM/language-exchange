@@ -10,6 +10,8 @@ import { useDispatch, useSelector } from "react-redux";
 import Link from "next/link";
 import { registerUser } from "@/features/user/userSlice";
 import { fetchProfile } from "@/features/user/profileSlice";
+import Cookies from "js-cookie";
+import axios from "axios";
 
 const Register = () => {
   const {
@@ -26,22 +28,43 @@ const Register = () => {
   const { loading, error, user } = useSelector((state) => state.user);
 
   const onSubmit = async (data) => {
-    dispatch(registerUser(data))
-      .unwrap()
-      .then((response) => {
-        if (response.user) {
-          toast.success("Registration successful");
-          reset();
-          dispatch(fetchProfile());
-          router.push("/login"); // Navigate to the login page
-        } else {
-          toast.error(response.message || "Registration failed");
-        }
-      })
-      .catch((err) => {
-        console.log("Registration failed:", err);
-        toast.error(err?.message || "Registration failed");
-      });
+    const registrationData = {
+      name: data.name,
+      email: data.email,
+      password: data.password,
+      dob: data.dob,
+      country: data.country,
+    };
+
+    try {
+      // Dispatch register action
+      const response = await dispatch(registerUser(registrationData)).unwrap();
+
+      // Store token in cookie
+      if (response.token) {
+        Cookies.set("token", response.token, {
+          expires: 30,
+          sameSite: "strict",
+          secure: process.env.NODE_ENV === "production",
+          path: "/",
+        });
+
+        // Set axios default header
+        axios.defaults.headers.common[
+          "Authorization"
+        ] = `Bearer ${response.token}`;
+      }
+
+      // Fetch the user's profile
+      await dispatch(fetchProfile()).unwrap();
+
+      toast.success("Registration successful!");
+      reset();
+      router.push("/profile");
+    } catch (err) {
+      console.error("Registration error:", err);
+      toast.error(err?.message || "Registration failed. Please try again.");
+    }
   };
 
   return (
@@ -250,7 +273,7 @@ const Register = () => {
           <Controller
             name="dob"
             control={control}
-            defaultValue={""}
+            defaultValue=""
             rules={{
               required: "Date of birth is required",
             }}
@@ -265,29 +288,10 @@ const Register = () => {
               />
             )}
           />
-
-          {/* Tandem ID Field */}
-          <Controller
-            name="tandemID"
-            control={control}
-            defaultValue=""
-            rules={{
-              required: "Tandem ID is required",
-            }}
-            render={({ field }) => (
-              <input
-                {...field}
-                type="text"
-                placeholder="Your Tandem ID"
-                className={`w-full border ${
-                  errors.tandemID ? "border-red-500" : "border-gray-300"
-                } rounded-lg p-3 focus:outline-none focus:border-blue-500`}
-              />
-            )}
-          />
-          {errors.tandemID && (
-            <p className="text-red-500 text-sm">{errors.tandemID.message}</p>
+          {errors.dob && (
+            <p className="text-red-500 text-sm">{errors.dob.message}</p>
           )}
+
           {/* Submit Button */}
           <motion.button
             whileHover={{ scale: 1.05 }}

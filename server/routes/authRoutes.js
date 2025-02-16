@@ -32,7 +32,7 @@ const generateToken = (res, userId) => {
 // @access  Public
 router.post("/register", async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, dob, country } = req.body;
 
     // Check if user exists
     const userExists = await User.findOne({ email });
@@ -40,21 +40,26 @@ router.post("/register", async (req, res) => {
       return res.status(400).json({ message: "User already exists" });
     }
 
+    // Generate a unique tandemID
+    const timestamp = Date.now();
+    const randomString = Math.random().toString(36).substring(2, 8);
+    const tandemID = `user_${timestamp}_${randomString}`;
+
     // Create user
     const user = await User.create({
       name,
       email,
       password,
-      tandemID: `user_${Date.now()}`,
+      tandemID,
     });
 
     // Create profile for the user
     const profile = await Profile.create({
       userId: user._id,
       name: user.name,
-      tandemID: user.tandemID,
-      dateOfBirth: null,
-      location: "",
+      tandemID: tandemID, // Use the generated tandemID
+      dateOfBirth: new Date(dob), // Convert to Date object
+      location: country,
       description: "",
       speaks: [],
       learns: [],
@@ -83,6 +88,7 @@ router.post("/register", async (req, res) => {
       description: "",
       speaks: [],
       learns: [],
+      country: country,
     });
 
     // Generate JWT token

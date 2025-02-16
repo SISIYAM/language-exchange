@@ -7,6 +7,24 @@ import { resetProfile } from "./profileSlice";
 // Define API URL
 const API_URL = "http://localhost:8080/api/auth";
 
+// Configure axios defaults
+axios.defaults.baseURL = "http://localhost:8080";
+axios.defaults.withCredentials = true;
+
+// Add axios interceptor for authentication
+axios.interceptors.request.use(
+  (config) => {
+    const token = Cookies.get("token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
 // Async thunks for API calls
 
 // Register a new user
@@ -14,12 +32,32 @@ export const registerUser = createAsyncThunk(
   "user/registerUser",
   async (userData, { rejectWithValue }) => {
     try {
-      const response = await axios.post(`${API_URL}/signup`, userData);
-      console.log("Registration Response:", response.data);
+      const response = await axios.post(`/api/auth/register`, userData);
+
+      // Set the token in cookie
+      if (response.data.token) {
+        Cookies.set("token", response.data.token, {
+          expires: 30,
+          sameSite: "strict",
+          secure: process.env.NODE_ENV === "production",
+          path: "/",
+        });
+
+        // Set default authorization header
+        axios.defaults.headers.common[
+          "Authorization"
+        ] = `Bearer ${response.data.token}`;
+      }
+
       return response.data;
     } catch (error) {
-      console.error("Registration Error:", error);
-      return rejectWithValue(error.response.data);
+      console.error(
+        "Registration Error:",
+        error.response?.data || error.message
+      );
+      return rejectWithValue(
+        error.response?.data || { message: "Registration failed" }
+      );
     }
   }
 );
@@ -29,20 +67,28 @@ export const loginUser = createAsyncThunk(
   "user/loginUser",
   async (userData, { rejectWithValue }) => {
     try {
-      const response = await axios.post(`${API_URL}/login`, userData);
-      console.log("Login Successful:", response.data);
-      Cookies.set("token", response.data.token, {
-        expires: 1,
-        sameSite: "strict",
-      });
+      const response = await axios.post(`/api/auth/login`, userData);
+
+      // Set the token in cookie
+      if (response.data.token) {
+        Cookies.set("token", response.data.token, {
+          expires: 30,
+          sameSite: "strict",
+          secure: process.env.NODE_ENV === "production",
+          path: "/",
+        });
+
+        // Set default authorization header
+        axios.defaults.headers.common[
+          "Authorization"
+        ] = `Bearer ${response.data.token}`;
+      }
+
       return response.data;
     } catch (error) {
-      console.error(
-        "Login Failed:",
-        error.response ? error.response.data : error.message
-      );
+      console.error("Login Error:", error.response?.data || error.message);
       return rejectWithValue(
-        error.response ? error.response.data : "An error occurred"
+        error.response?.data || { message: "Login failed" }
       );
     }
   }
@@ -209,10 +255,6 @@ const userSlice = createSlice({
       .addCase(loginUser.fulfilled, (state, action) => {
         state.loading = false;
         state.currentUser = action.payload.user;
-        Cookies.set("token", action.payload.token, {
-          expires: 1,
-          sameSite: "strict",
-        }); // Store the token in cookies
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.loading = false;

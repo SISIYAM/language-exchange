@@ -1,55 +1,166 @@
 "use client";
+import React, { useState, useEffect, useRef } from "react";
+import { useSelector } from "react-redux";
+import io from "socket.io-client";
+import axios from "axios";
+import Cookies from "js-cookie";
 import Conversation from "@/components/chat/Conversation";
 import Sidebar from "@/components/chat/Sidebar";
-import ChatWindow from "@/components/chat/ChatWindow";
-import { useSelector, useDispatch } from "react-redux";
-import { useEffect } from "react";
-import {
-  setSelectedUser,
-  fetchChatUserList,
-  fetchConversationHistory,
-} from "@/features/user/chatSlice"; // Add the necessary actions
 
-const Page = () => {
-  const currentUser = useSelector((state) => state.auth?.user); // Current authenticated user
-  const selectedUser = useSelector((state) => state.chat?.selectedUser); // Currently selected chat user
-  const users = useSelector((state) => state.chat?.users); // List of chat users
-  const conversation = useSelector((state) => state.chat?.conversation); // Current conversation history
-  const status = useSelector((state) => state.chat?.status); // Chat loading status
-  const error = useSelector((state) => state.chat?.error); // Error state
+const ChatPage = () => {
+  const [socket, setSocket] = useState(null);
+  const [chats, setChats] = useState([]);
+  const [currentChat, setCurrentChat] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [isTyping, setIsTyping] = useState(false);
+  const [typingTimeout, setTypingTimeout] = useState(null);
+  const messagesEndRef = useRef(null);
+  const { currentUser } = useSelector((state) => state.user);
 
-  const dispatch = useDispatch();
-
-  // Fetch users and conversation history when the page loads or the currentUser changes
+  // Initialize Socket.IO connection
   useEffect(() => {
+    const token = Cookies.get("token");
+    if (token && !socket) {
+      const newSocket = io("http://localhost:8080", {
+        auth: { token },
+      });
+
+      newSocket.on("connect", () => {
+        console.log("Connected to Socket.IO server");
+      });
+
+      newSocket.on("connect_error", (error) => {
+        console.error("Socket connection error:", error);
+      });
+
+      setSocket(newSocket);
+
+      return () => {
+        newSocket.close();
+      };
+    }
+  }, [currentUser]);
+
+  // Fetch user's chats
+  useEffect(() => {
+    const fetchChats = async () => {
+      try {
+        const response = await axios.get("/api/chat");
+        setChats(response.data);
+      } catch (error) {
+        console.error("Error fetching chats:", error);
+      }
+    };
+
     if (currentUser) {
-      dispatch(fetchChatUserList(currentUser.id)); // Fetch users
+      fetchChats();
     }
-  }, [dispatch, currentUser]);
+  }, [currentUser]);
 
+  // Handle receiving messages
   useEffect(() => {
-    if (currentUser && selectedUser) {
-      dispatch(
-        fetchConversationHistory({
-          userId1: currentUser.id,
-          userId2: selectedUser.id,
-        })
-      );
-    }
-  }, [dispatch, currentUser, selectedUser]);
+    if (socket) {
+      socket.on("receive_message", (newMessage) => {
+        if (currentChat && currentChat._id === newMessage.chatId) {
+          setMessages((prev) => [...prev, newMessage]);
+        }
+      });
 
-  // Function to handle user selection in the sidebar
-  const handleUserSelect = (user) => {
-    dispatch(setSelectedUser(user)); // Set the selected user
+      socket.on("user_typing", ({ userId, isTyping }) => {
+        if (
+          currentChat &&
+          currentChat.participants.find((p) => p._id === userId)
+        ) {
+          setIsTyping(isTyping);
+        }
+      });
+
+      return () => {
+        socket.off("receive_message");
+        socket.off("user_typing");
+      };
+    }
+  }, [socket, currentChat]);
+
+  // Scroll to bottom when messages update
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const selectChat = async (chat) => {
+    setCurrentChat(chat);
+    if (socket) {
+      if (currentChat) {
+        socket.emit("leave_chat", currentChat._id);
+      }
+      socket.emit("join_chat", chat._id);
+    }
+
+    try {
+      const response = await axios.get(`/api/chat/${chat._id}`);
+      setMessages(response.data.messages);
+    } catch (error) {
+      console.error("Error fetching messages:", error);
+    }
+  };
+
+  const handleTyping = () => {
+    if (socket && currentChat) {
+      if (typingTimeout) clearTimeout(typingTimeout);
+
+      socket.emit("typing", { chatId: currentChat._id, isTyping: true });
+
+      const timeout = setTimeout(() => {
+        socket.emit("typing", { chatId: currentChat._id, isTyping: false });
+      }, 2000);
+
+      setTypingTimeout(timeout);
+    }
+  };
+
+  const sendMessage = async (content) => {
+    if (!content.trim() || !currentChat) return;
+
+    try {
+      const response = await axios.post(
+        `/api/chat/${currentChat._id}/message`,
+        {
+          content,
+        }
+      );
+
+      if (socket) {
+        socket.emit("send_message", {
+          chatId: currentChat._id,
+          content,
+        });
+      }
+
+      setMessages(response.data.messages);
+    } catch (error) {
+      console.error("Error sending message:", error);
+    }
   };
 
   return (
     <div className="flex items-start !overflow-hidden h-[80vh] bg-white container mx-auto">
-      <Sidebar onUserSelect={handleUserSelect} users={users} />
-      <Conversation conversation={conversation} status={status} error={error} />
-      <ChatWindow currentUser={currentUser} selectedUser={selectedUser} />
+      <Sidebar
+        chats={chats}
+        currentUser={currentUser}
+        onSelectChat={selectChat}
+        currentChat={currentChat}
+      />
+      <Conversation
+        messages={messages}
+        currentUser={currentUser}
+        currentChat={currentChat}
+        isTyping={isTyping}
+        messagesEndRef={messagesEndRef}
+        onSendMessage={sendMessage}
+        onTyping={handleTyping}
+      />
     </div>
   );
 };
 
-export default Page;
+export default ChatPage;

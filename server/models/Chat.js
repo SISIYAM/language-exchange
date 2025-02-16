@@ -1,23 +1,62 @@
 const mongoose = require("mongoose");
 
-const ChatSchema = new mongoose.Schema(
+const messageSchema = new mongoose.Schema(
   {
     sender: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
     },
-    message: {
+    content: {
       type: String,
       required: true,
     },
-    match: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Match", // Ensure the 'match' field is linked to the 'Match' model
-      required: true,
-    },
+    readBy: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
   },
-  { timestamps: true } // This automatically adds createdAt and updatedAt fields
+  { timestamps: true }
 );
 
-module.exports = mongoose.model("Chat", ChatSchema); // Correct export
+const chatSchema = new mongoose.Schema(
+  {
+    participants: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        required: true,
+      },
+    ],
+    messages: [messageSchema],
+    lastMessage: {
+      type: messageSchema,
+      default: null,
+    },
+    isGroupChat: {
+      type: Boolean,
+      default: false,
+    },
+    groupName: {
+      type: String,
+      trim: true,
+    },
+    groupAdmin: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+  },
+  { timestamps: true }
+);
+
+// Create indexes for better query performance
+chatSchema.index({ participants: 1 });
+chatSchema.index({ "messages.sender": 1 });
+chatSchema.index({ "messages.readBy": 1 });
+chatSchema.index({ updatedAt: -1 });
+
+const Chat = mongoose.model("Chat", chatSchema);
+
+module.exports = Chat;
