@@ -26,22 +26,31 @@ const Login = () => {
 
   const onSubmit = async (data) => {
     try {
-      const response = await axios.post("/api/auth/login", {
-        email: data.email,
-        password: data.password,
-      });
+      // Dispatch login action
+      const response = await dispatch(loginUser(data)).unwrap();
 
       // Store token in cookie (if not already handled by backend)
-      if (response.data.token) {
-        Cookies.set("token", response.data.token);
+      if (response.token) {
+        Cookies.set("token", response.token, {
+          expires: 30,
+          sameSite: "strict",
+          secure: process.env.NODE_ENV === "production",
+          path: "/",
+        });
+
+        // Set axios default header
+        axios.defaults.headers.common[
+          "Authorization"
+        ] = `Bearer ${response.token}`;
       }
 
       // Fetch user profile
       await dispatch(fetchProfile()).unwrap();
 
-      // Redirect to profile page
+      toast.success("Login successful!");
       router.push("/profile");
     } catch (error) {
+      console.error("Login error:", error);
       toast.error(error.response?.data?.message || "Login failed");
     }
   };

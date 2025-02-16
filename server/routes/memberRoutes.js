@@ -80,16 +80,29 @@ router.get("/search", async (req, res) => {
       .select("-__v")
       .lean();
 
-    // Add the full profile picture URL for each member
-    const membersWithUrls = members.map((member) => ({
-      ...member,
-      profilePicture: member.profilePicture
-        ? `http://localhost:8080${member.profilePicture}`
-        : "/default-avatar.png",
-    }));
+    // Get profiles for the found members
+    const memberProfiles = await Promise.all(
+      members.map(async (member) => {
+        const profile = await Profile.findOne({
+          userId: member.user._id,
+        }).lean();
+        return {
+          _id: member.user._id,
+          name: member.name,
+          email: member.user.email,
+          profilePicture: profile?.profilePicture
+            ? `http://localhost:8080${profile.profilePicture}`
+            : "/default-avatar.png",
+          speaks: member.speaks,
+          learns: member.learns,
+          description: member.description,
+        };
+      })
+    );
 
-    res.json(membersWithUrls);
+    res.json(memberProfiles);
   } catch (error) {
+    console.error("Search error:", error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 });
