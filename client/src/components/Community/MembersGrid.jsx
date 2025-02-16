@@ -4,6 +4,7 @@ import { FiSearch, FiSliders } from "react-icons/fi";
 import HighlightedProfiles from "./HighlightedProfiles";
 import Link from "next/link";
 import axios from "axios"; // Import axios for API calls
+import Cookies from "js-cookie";
 
 // Member card to display individual member's data
 const MemberCard = ({ member }) => {
@@ -134,9 +135,16 @@ const MembersGrid = () => {
   const handleSearch = async (query) => {
     if (query) {
       try {
+        const token = Cookies.get("token");
         // Fetch search results from the API
         const response = await axios.get(
-          `http://localhost:8080/api/partners/search?query=${query}`
+          `http://localhost:8080/api/partners/search?query=${query}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+            withCredentials: true,
+          }
         );
         setFilteredMembers(response.data);
         console.log(response.data);

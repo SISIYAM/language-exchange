@@ -3,41 +3,93 @@ import Link from "next/link";
 import React from "react";
 import { useEffect, useState } from "react";
 import { CiMenuKebab } from "react-icons/ci";
-import axios from "axios"; // Import axios
+import axios from "axios";
+import Cookies from "js-cookie"; // Import Cookies for token management
 
 const ProfileDetails = ({ id }) => {
   const [profile, setProfile] = useState(null);
+  const [myProfile, setMyProfile] = useState(null); // State to store the current user's profile
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null); // Add error state
+  const [error, setError] = useState(null);
+  const [isFollowing, setIsFollowing] = useState(false); // Track follow/unfollow state
 
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const response = await axios.get(
+        const token = Cookies.get("token"); // Get the token from cookies
+
+        // Fetch the profile being viewed
+        const profileResponse = await axios.get(
           `http://localhost:8080/api/profile/${id}`,
           {
-            withCredentials: true, // Include credentials
-            headers: { "Content-Type": "application/json" },
+            headers: {
+              Authorization: `Bearer ${token}`, // Include the token in the headers
+            },
+            withCredentials: true,
           }
         );
 
-        if (response.data) {
-          console.log(response.data);
-          setProfile(response.data); // Set profile data from response
+        // Fetch the current user's profile
+        const myProfileResponse = await axios.get(
+          "http://localhost:8080/api/profile/my/profile",
+          {
+            headers: {
+              Authorization: `Bearer ${token}`, // Include the token in the headers
+            },
+            withCredentials: true,
+          }
+        );
+
+        if (profileResponse.data && myProfileResponse.data) {
+          setProfile(profileResponse.data);
+          setMyProfile(myProfileResponse.data);
+
+          // Check if the current user is already following this profile
+          const isFollowingProfile =
+            myProfileResponse.data.following.includes(id);
+          setIsFollowing(isFollowingProfile);
         }
       } catch (error) {
         console.error("Error fetching profile:", error);
-        setError("Failed to fetch profile data. Please try again later."); // Set error message
+        setError("Failed to fetch profile data. Please try again later.");
       } finally {
         setLoading(false);
       }
     };
 
     fetchProfile();
-  }, [id]); // Add `id` to the dependency array
+  }, [id]);
+
+  // Function to handle follow/unfollow
+  const handleFollow = async () => {
+    try {
+      const token = Cookies.get("token"); // Get the token from cookies
+      const endpoint = isFollowing
+        ? `http://localhost:8080/api/profile/unfollow/${id}`
+        : `http://localhost:8080/api/profile/follow/${id}`;
+
+      const response = await axios.post(
+        endpoint,
+        {}, // No body needed for this request
+        {
+          headers: {
+            Authorization: `Bearer ${token}`, // Include the token in the headers
+          },
+          withCredentials: true,
+        }
+      );
+
+      if (response.data) {
+        setIsFollowing(!isFollowing); // Toggle follow/unfollow state
+      }
+    } catch (error) {
+      console.error("Error toggling follow:", error);
+      setError("Failed to toggle follow. Please try again later.");
+    }
+  };
 
   if (loading) return <div>Loading...</div>;
-  if (error) return <div>{error}</div>; // Display error message
+  if (error) return <div>{error}</div>;
   if (!profile) return <div>No profile data found.</div>;
 
   // Calculate age from dateOfBirth
@@ -49,7 +101,7 @@ const ProfileDetails = ({ id }) => {
 
   // Destructure profile and member from the response
   const { profile: profileData, member: memberData } = profile;
-  console.log(profileData);
+
   return (
     <div className="min-h-screen bg-amber-50/80">
       {/* Header Section */}
@@ -65,7 +117,7 @@ const ProfileDetails = ({ id }) => {
       <main className="max-w-6xl mx-auto px-4 py-5 grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="col-span-3 top-1/2 flex flex-col items-center left-1/2 transform -translate-y-20 text-center">
           <img
-            src={`http://localhost:8080${profileData.profilePicture}`} // Fallback for missing profile picture
+            src={`http://localhost:8080${profileData.profilePicture}`}
             alt="Profile"
             className="w-44 h-44 rounded-full border-4 border-white object-cover"
           />
@@ -74,8 +126,11 @@ const ProfileDetails = ({ id }) => {
           </h1>
           <p className="text-gray-500">Active recently</p>
           <div className="flex justify-center space-x-4 mt-4">
-            <button className="bg-primary text-white px-6 py-2 rounded-full">
-              Follow
+            <button
+              onClick={handleFollow}
+              className="bg-primary text-white px-6 py-2 rounded-full"
+            >
+              {isFollowing ? "Unfollow" : "Follow"}
             </button>
             <Link href="/chat">
               <button className="bg-primary text-white px-6 py-2 rounded-full">
@@ -170,7 +225,7 @@ const ProfileDetails = ({ id }) => {
               .map((_, index) => (
                 <img
                   key={index}
-                  src={memberData.profilePictureUrl || "/default-profile.png"} // Fallback for missing photos
+                  src={memberData.profilePictureUrl || "/default-profile.png"}
                   alt={`Photo ${index + 1}`}
                   className="w-full h-24 object-cover rounded"
                 />

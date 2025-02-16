@@ -127,6 +127,19 @@ router.get("/me", protect, async (req, res) => {
   }
 });
 
+router.get("/my/profile", protect, async (req, res) => {
+  try {
+    console.log("Fetching profile for user ID:", req.user._id);
+
+    let profile = await Profile.findOne({ userId: req.user._id });
+
+    res.json(profile);
+  } catch (error) {
+    console.error("Profile fetch error:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+});
+
 // @route   PUT /api/profile/me
 // @desc    Update user profile
 // @access  Private
@@ -171,20 +184,30 @@ router.put("/me", protect, async (req, res) => {
 // @access  Private
 router.post("/follow/:id", protect, async (req, res) => {
   try {
+    // Find the user to follow
     const userToFollow = await User.findById(req.params.id);
     if (!userToFollow) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    const currentUserProfile = await Profile.findOne({ user: req.user._id });
+    // Find the current user's profile
+    const currentUserProfile = await Profile.findOne({ userId: req.user._id });
+    if (!currentUserProfile) {
+      return res.status(404).json({ message: "Profile not found" });
+    }
+
+    // Check if already following the user
     if (currentUserProfile.following.includes(userToFollow._id)) {
       return res.status(400).json({ message: "Already following this user" });
     }
 
+    // Add the user to the following list
     currentUserProfile.following.push(userToFollow._id);
     await currentUserProfile.save();
+
     res.json({ message: "Followed successfully" });
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -194,20 +217,30 @@ router.post("/follow/:id", protect, async (req, res) => {
 // @access  Private
 router.post("/unfollow/:id", protect, async (req, res) => {
   try {
+    // Find the user to unfollow
     const userToUnfollow = await User.findById(req.params.id);
     if (!userToUnfollow) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    const currentUserProfile = await Profile.findOne({ user: req.user._id });
+    // Find the current user's profile
+    const currentUserProfile = await Profile.findOne({ userId: req.user._id });
+    if (!currentUserProfile) {
+      return res.status(404).json({ message: "Profile not found" });
+    }
+
+    // Check if not following the user
     if (!currentUserProfile.following.includes(userToUnfollow._id)) {
       return res.status(400).json({ message: "Not following this user" });
     }
 
+    // Remove the user from the following list
     currentUserProfile.following.pull(userToUnfollow._id);
     await currentUserProfile.save();
+
     res.json({ message: "Unfollowed successfully" });
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: "Server error" });
   }
 });

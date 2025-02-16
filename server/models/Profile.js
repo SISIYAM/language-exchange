@@ -97,6 +97,18 @@ const ProfileSchema = new mongoose.Schema(
       default: true,
     },
     profilePicture: { type: String, default: null },
+    following: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
+    blocked: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
   },
   { timestamps: true }
 );
