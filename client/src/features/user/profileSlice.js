@@ -50,7 +50,14 @@ export const fetchProfile = createAsyncThunk(
   "profile/fetchProfile",
   async (_, { rejectWithValue }) => {
     try {
-      const response = await axios.get("/api/profile/me");
+      const token = Cookies.get("token");
+      const response = await axios.get("/api/profile/me", {
+        headers: {
+          Authorization: `Bearer ${token}`, // Fixed template literal syntax
+        },
+        withCredentials: true,
+      });
+
       return response.data;
     } catch (error) {
       return rejectWithValue(

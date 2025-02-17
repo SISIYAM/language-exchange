@@ -30,7 +30,7 @@ const Login = () => {
         email: data.email,
         password: data.password,
       });
-
+      console.log(response);
       // Store token in cookie (if not already handled by backend)
       if (response.data.token) {
         Cookies.set("token", response.data.token);
