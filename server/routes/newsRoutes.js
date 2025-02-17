@@ -1,9 +1,9 @@
 const express = require("express");
 const router = express.Router();
 const authMiddleware = require("../middleware/authMiddleware");
-const { getNews } = require("../controllers/newsController");
+const { fetchNewsFromNewsAPI } = require("../controllers/newsController");
 
-// Get news articles
-router.get("/", authMiddleware, getNews); //🔒 Protected Route
+// Route to fetch nutritional data
+router.get("/", fetchNewsFromNewsAPI);
 
 module.exports = router;

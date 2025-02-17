@@ -9,6 +9,7 @@ const userRoutes = require("./routes/userRoutes.js");
 const profileRoutes = require("./routes/profileRoutes.js");
 const memberRoutes = require("./routes/memberRoutes.js");
 const partnerRoutes = require("./routes/partnerRoutes.js");
+const newsRoutes = require("./routes/newsRoutes.js");
 
 dotenv.config();
 const app = express();
@@ -47,6 +48,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/members", memberRoutes);
 app.use("/api/partners", partnerRoutes);
+app.use("/api/news", newsRoutes);
 
 // Database Connection
 mongoose
