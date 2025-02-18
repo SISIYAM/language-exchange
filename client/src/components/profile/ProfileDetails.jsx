@@ -6,6 +6,14 @@ import { CiMenuKebab } from "react-icons/ci";
 import axios from "axios";
 import Cookies from "js-cookie"; // Import Cookies for token management
 
+// Define the API base URL
+const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+console.log(baseUrl);
+
+const defaultImage =
+  "https://imgs.search.brave.com/m12gFeEaYTH9TW9JHo1E4K4UFZBIAGpFdv-O_jdbty0/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly90My5m/dGNkbi5uZXQvanBn/LzAzLzQ2LzgzLzk2/LzM2MF9GXzM0Njgz/OTY4M182bkFQemJo/cFNrSXBiOHBtQXd1/ZmtDN2M1ZUQ3d1l3/cy5qcGc";
+
 const ProfileDetails = ({ id }) => {
   const [profile, setProfile] = useState(null);
   const [myProfile, setMyProfile] = useState(null); // State to store the current user's profile
@@ -19,19 +27,16 @@ const ProfileDetails = ({ id }) => {
         const token = Cookies.get("token"); // Get the token from cookies
 
         // Fetch the profile being viewed
-        const profileResponse = await axios.get(
-          `http://localhost:8080/api/profile/${id}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`, // Include the token in the headers
-            },
-            withCredentials: true,
-          }
-        );
+        const profileResponse = await axios.get(`${apiUrl}/profile/${id}`, {
+          headers: {
+            Authorization: `Bearer ${token}`, // Include the token in the headers
+          },
+          withCredentials: true,
+        });
 
         // Fetch the current user's profile
         const myProfileResponse = await axios.get(
-          "http://localhost:8080/api/profile/my/profile",
+          `${apiUrl}/profile/my/profile`,
           {
             headers: {
               Authorization: `Bearer ${token}`, // Include the token in the headers
@@ -41,10 +46,11 @@ const ProfileDetails = ({ id }) => {
         );
 
         if (profileResponse.data && myProfileResponse.data) {
-          setProfile(profileResponse.data);
-          setMyProfile(myProfileResponse.data);
+          setProfile(profileResponse.data.profile); // Access the profile object directly
+          setMyProfile(myProfileResponse.data.profile); // Access the profile object directly
 
           // Check if the current user is already following this profile
+
           const isFollowingProfile =
             myProfileResponse.data.following.includes(id);
           setIsFollowing(isFollowingProfile);
@@ -65,8 +71,8 @@ const ProfileDetails = ({ id }) => {
     try {
       const token = Cookies.get("token"); // Get the token from cookies
       const endpoint = isFollowing
-        ? `http://localhost:8080/api/profile/unfollow/${id}`
-        : `http://localhost:8080/api/profile/follow/${id}`;
+        ? `${apiUrl}/profile/unfollow/${id}`
+        : `${apiUrl}/profile/follow/${id}`;
 
       const response = await axios.post(
         endpoint,
@@ -94,13 +100,14 @@ const ProfileDetails = ({ id }) => {
 
   // Calculate age from dateOfBirth
   const calculateAge = (birthDate) => {
+    if (!birthDate) return "Unknown"; // Handle null or undefined dateOfBirth
     const diff = Date.now() - new Date(birthDate).getTime();
     const ageDate = new Date(diff);
     return Math.abs(ageDate.getUTCFullYear() - 1970);
   };
 
-  // Destructure profile and member from the response
-  const { profile: profileData, member: memberData } = profile;
+  // Destructure profile from the response
+  const profileData = profile;
 
   return (
     <div className="min-h-screen bg-amber-50/80">
@@ -117,7 +124,11 @@ const ProfileDetails = ({ id }) => {
       <main className="max-w-6xl mx-auto px-4 py-5 grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="col-span-3 top-1/2 flex flex-col items-center left-1/2 transform -translate-y-20 text-center">
           <img
-            src={`http://localhost:8080${profileData.profilePicture}`}
+            src={
+              profileData.profilePicture
+                ? `${baseUrl}${profileData.profilePicture}`
+                : defaultImage
+            }
             alt="Profile"
             className="w-44 h-44 rounded-full border-4 border-white object-cover"
           />
@@ -225,7 +236,10 @@ const ProfileDetails = ({ id }) => {
               .map((_, index) => (
                 <img
                   key={index}
-                  src={memberData.profilePictureUrl || "/default-profile.png"}
+                  src={
+                    `${baseUrl}${profileData.profilePicture}` ||
+                    "/default-profile.png"
+                  }
                   alt={`Photo ${index + 1}`}
                   className="w-full h-24 object-cover rounded"
                 />

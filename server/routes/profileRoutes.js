@@ -393,16 +393,25 @@ router.get("/:id", async (req, res) => {
       return res.status(404).json({ message: "Profile not found" });
     }
 
-    // Fetch the related member by userId
-    const member = await Member.findOne({ user: userId });
-
     // Return the profile and member data
     res.json({
       profile,
-      member: member || null,
     });
   } catch (error) {
     console.error("Error fetching profile:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+});
+
+// fetch all profiles
+router.get("/all/members", async (req, res) => {
+  try {
+    const profiles = await Profile.find().select("-__v").lean();
+
+    // Send the response
+    res.status(200).json(profiles);
+  } catch (error) {
+    console.error("Error fetching profiles:", error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 });

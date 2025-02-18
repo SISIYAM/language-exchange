@@ -22,15 +22,15 @@ const ProfileSchema = new mongoose.Schema(
     },
     description: {
       type: String,
-      default: "", // Moved here for Member creation
+      default: "",
     },
     speaks: {
       type: [String],
-      default: [], // Moved here for Member creation
+      default: [],
     },
     learns: {
       type: [String],
-      default: [], // Moved here for Member creation
+      default: [],
     },
     about: {
       type: String,

@@ -6,19 +6,38 @@ import Link from "next/link";
 import axios from "axios"; // Import axios for API calls
 import Cookies from "js-cookie";
 
+// Define the API base URL
+const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+const defaultImage =
+  "https://imgs.search.brave.com/m12gFeEaYTH9TW9JHo1E4K4UFZBIAGpFdv-O_jdbty0/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly90My5m/dGNkbi5uZXQvanBn/LzAzLzQ2LzgzLzk2/LzM2MF9GXzM0Njgz/OTY4M182bkFQemJo/cFNrSXBiOHBtQXd1/ZmtDN2M1ZUQ3d1l3/cy5qcGc";
+
 // Member card to display individual member's data
 const MemberCard = ({ member }) => {
+  // Function to map language codes to country names
+  const getCountryName = (languageCode) => {
+    const languageToCountry = {
+      en: "English",
+      es: "Spanish",
+      fr: "French",
+      de: "German",
+      zh: "Chinese",
+      hi: "Hindi",
+    };
+    return languageToCountry[languageCode] || languageCode;
+  };
+
   return (
     <Link
-      href={`/community/${member.userId}`} // Use userId for the link
+      href={`/community/${member.userId}`}
       className="bg-white border rounded-lg p-3 flex items-center space-x-4 hover:shadow-lg transition-shadow"
     >
       <img
-        src={member.profilePicture || "/default-avatar.png"} // Use profilePicture from the API
+        src={`${baseUrl}${member.profilePicture}`}
         alt={member.name}
         className="w-28 h-28 rounded-lg object-cover"
         onError={(e) => {
-          e.target.src = "/default-avatar.png"; // Fallback for broken images
+          e.target.src = defaultImage;
         }}
       />
       <div className="flex-1">
@@ -31,16 +50,34 @@ const MemberCard = ({ member }) => {
           <h3 className="font-semibold text-lg">{member.name}</h3>
         </div>
         <p className="text-sm text-gray-600">{member.description}</p>
-        <div className="flex items-center space-x-2 mt-2 text-sm text-gray-500">
-          <div className="flex gap-2 items-center">
-            <span className="font-medium text-black">SPEAKS</span>
-            {member.speaks.map((lang, index) => (
-              <span key={index} className="ml-1">
-                {lang}
-              </span>
-            ))}
+
+        {/* Conditionally render "Speaks" section */}
+        {member.speaks && member.speaks.length > 0 && (
+          <div className="flex items-center space-x-2 mt-2 text-sm text-gray-500">
+            <div className="flex gap-2 items-center">
+              <span className="font-medium text-black">SPEAKS</span>
+              {member.speaks.map((lang, index) => (
+                <span key={index} className="ml-1">
+                  {getCountryName(lang)}
+                </span>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* Conditionally render "Learns" section */}
+        {member.learns && member.learns.length > 0 && (
+          <div className="flex items-center space-x-2 mt-2 text-sm text-gray-500">
+            <div className="flex gap-2 items-center">
+              <span className="font-medium text-black">LEARNS</span>
+              {member.learns.map((lang, index) => (
+                <span key={index} className="ml-1">
+                  {getCountryName(lang)}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </Link>
   );
@@ -114,11 +151,8 @@ const MembersGrid = () => {
   useEffect(() => {
     const fetchMembers = async () => {
       try {
-        const response = await axios.get(
-          "http://localhost:8080/api/members/all/member"
-        );
+        const response = await axios.get(`${apiUrl}/profile/all/members`);
         setMembers(response.data);
-        console.log(response.data);
         setFilteredMembers(response.data);
       } catch (error) {
         console.error("Error fetching members:", error);
@@ -138,7 +172,7 @@ const MembersGrid = () => {
         const token = Cookies.get("token");
         // Fetch search results from the API
         const response = await axios.get(
-          `http://localhost:8080/api/partners/search?query=${query}`,
+          `${apiUrl}/partners/search?query=${query}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -147,7 +181,6 @@ const MembersGrid = () => {
           }
         );
         setFilteredMembers(response.data);
-        console.log(response.data);
       } catch (error) {
         console.error("Error fetching search results:", error);
         setError("Failed to fetch search results. Please try again later.");
