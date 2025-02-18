@@ -76,31 +76,15 @@ router.post("/register", async (req, res) => {
       profilePicture: "",
     });
 
-    // Create member record
-    const member = await Member.create({
-      user: user._id,
-      name: user.name,
-      description: "",
-      speaks: [],
-      learns: [],
-    });
-
     // Generate JWT token
     const token = generateToken(res, user._id);
 
-    // Set token in cookie
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-    });
-
+    // Send response with token
     res.status(201).json({
       _id: user._id,
       name: user.name,
       email: user.email,
-      token,
+      token, // Token is sent in the response
     });
   } catch (error) {
     console.error("Registration error:", error);
@@ -111,7 +95,6 @@ router.post("/register", async (req, res) => {
 // @route   POST /api/auth/login
 router.post("/login", async (req, res) => {
   const { email, password } = req.body;
-
   try {
     const user = await User.findOne({ email });
 
@@ -129,6 +112,19 @@ router.post("/login", async (req, res) => {
 // @route   GET /api/auth/verify/me
 router.get("/verify/me", protect, async (req, res) => {
   res.json(req.user);
+});
+
+// Verify login status
+router.get("/verify/login", protect, async (req, res) => {
+  try {
+    // If the protect middleware passes, the user is authenticated
+    res.status(200).json({
+      success: true,
+      user: req.user, // User data from the protect middleware
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Server error" });
+  }
 });
 
 // @route   POST /api/auth/logout

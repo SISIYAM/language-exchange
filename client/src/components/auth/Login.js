@@ -5,44 +5,50 @@ import { useForm, Controller } from "react-hook-form";
 import { FaApple, FaFacebook } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
 import { motion } from "framer-motion";
-import toast from "react-hot-toast";
-import Cookies from "js-cookie";
-import { useRouter } from "next/navigation";
-import { useDispatch, useSelector } from "react-redux";
-import { loginUser } from "@/features/user/userSlice";
-import { fetchProfile } from "@/features/user/profileSlice";
 import axios from "axios";
+import Cookies from "js-cookie";
+import toast from "react-hot-toast";
+import { useRouter } from "next/navigation";
+
+const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
 const Login = () => {
   const {
     handleSubmit,
     control,
     formState: { errors },
-    reset,
   } = useForm();
   const router = useRouter();
-  const dispatch = useDispatch();
-  const { loading, user } = useSelector((state) => state.user);
 
   const onSubmit = async (data) => {
     try {
-      const response = await axios.post("/api/auth/login", {
+      // Call the login API
+      const response = await axios.post(`${apiUrl}/auth/login`, {
         email: data.email,
         password: data.password,
       });
-      console.log(response);
-      // Store token in cookie (if not already handled by backend)
+
+      // If login is successful
       if (response.data.token) {
-        Cookies.set("token", response.data.token);
+        // Save the token in a cookie
+        Cookies.set("token", response.data.token, { expires: 7 }); // Expires in 7 days
+        toast.success("Login successful!");
+
+        // Redirect to the profile page or any other page
+        router.push("/profile");
+      } else {
+        toast.error("Login failed. Please try again.");
       }
-
-      // Fetch user profile
-      await dispatch(fetchProfile()).unwrap();
-
-      // Redirect to profile page
-      router.push("/profile");
     } catch (error) {
-      toast.error(error.response?.data?.message || "Login failed");
+      // Handle errors
+      if (error.response) {
+        toast.error(
+          error.response.data.message || "Login failed. Please try again."
+        );
+      } else {
+        toast.error("An unexpected error occurred. Please try again.");
+      }
+      console.error("Login error:", error);
     }
   };
 
@@ -183,14 +189,10 @@ const Login = () => {
             whileTap={{ scale: 0.95 }}
             type="submit"
             className="w-full bg-[#074c77] text-white py-3 rounded-lg font-semibold hover:bg-cyan-600 transition duration-200"
-            disabled={loading}
           >
-            {loading ? "Logging in..." : "Log in"}
+            Log in
           </motion.button>
         </motion.form>
-
-        {/* Display user name if user is logged in */}
-        {user && <p className="mt-4 text-center">Welcome, {user.name}!</p>}
       </motion.div>
     </motion.div>
   );

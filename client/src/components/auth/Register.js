@@ -1,15 +1,17 @@
 "use client";
+
 import React from "react";
 import { useForm, Controller } from "react-hook-form";
 import { FaApple, FaFacebook } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
 import { motion } from "framer-motion"; // For animations
+import Link from "next/link";
+import axios from "axios";
+import Cookies from "js-cookie";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
-import { useDispatch, useSelector } from "react-redux";
-import Link from "next/link";
-import { registerUser } from "@/features/user/userSlice";
-import { fetchProfile } from "@/features/user/profileSlice";
+
+const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
 const Register = () => {
   const {
@@ -17,31 +19,38 @@ const Register = () => {
     control,
     formState: { errors },
     watch,
-    reset,
   } = useForm();
   const router = useRouter();
-  const dispatch = useDispatch();
   const password = watch("password");
 
-  const { loading, error, user } = useSelector((state) => state.user);
-
   const onSubmit = async (data) => {
-    dispatch(registerUser(data))
-      .unwrap()
-      .then((response) => {
-        if (response.user) {
-          toast.success("Registration successful");
-          reset();
-          dispatch(fetchProfile());
-          router.push("/login"); // Navigate to the login page
-        } else {
-          toast.error(response.message || "Registration failed");
-        }
-      })
-      .catch((err) => {
-        console.log("Registration failed:", err);
-        toast.error(err?.message || "Registration failed");
-      });
+    try {
+      // Call the register API
+      const response = await axios.post(`${apiUrl}/auth/register`, data);
+
+      // If registration is successful
+      if (response.data.token) {
+        // Save the token in a cookie
+        Cookies.set("token", response.data.token, { expires: 30 }); // Expires in 30 days
+        toast.success("Registration successful!");
+
+        // Redirect to the profile page
+        router.push("/profile");
+      } else {
+        toast.error("Registration failed. Please try again.");
+      }
+    } catch (error) {
+      // Handle errors
+      if (error.response) {
+        toast.error(
+          error.response.data.message ||
+            "Registration failed. Please try again."
+        );
+      } else {
+        toast.error("An unexpected error occurred. Please try again.");
+      }
+      console.error("Registration error:", error);
+    }
   };
 
   return (
@@ -288,6 +297,7 @@ const Register = () => {
           {errors.tandemID && (
             <p className="text-red-500 text-sm">{errors.tandemID.message}</p>
           )}
+
           {/* Submit Button */}
           <motion.button
             whileHover={{ scale: 1.05 }}
@@ -295,7 +305,7 @@ const Register = () => {
             type="submit"
             className="w-full bg-blue-600 text-white rounded-lg py-3 mt-4 hover:bg-blue-700"
           >
-            {loading ? "Registering..." : "Register"}
+            Register
           </motion.button>
         </motion.form>
 
