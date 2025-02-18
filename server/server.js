@@ -10,18 +10,26 @@ const profileRoutes = require("./routes/profileRoutes.js");
 const memberRoutes = require("./routes/memberRoutes.js");
 const partnerRoutes = require("./routes/partnerRoutes.js");
 const newsRoutes = require("./routes/newsRoutes.js");
+const subscriptionRoutes = require("./routes/subscription");
 
 dotenv.config();
 const app = express();
 
-// Middleware
+// Stripe webhook endpoint needs raw body
+app.post(
+  "/api/subscription/webhook",
+  express.raw({ type: "application/json" })
+);
+
+// Regular middleware for other routes
 app.use(express.json());
 app.use(
   cors({
     origin: "http://localhost:3000",
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    allowedHeaders: ["Content-Type", "Authorization", "Cookie"],
+    exposedHeaders: ["set-cookie"],
   })
 );
 app.use(cookieParser());
@@ -49,6 +57,7 @@ app.use("/api/profile", profileRoutes);
 app.use("/api/members", memberRoutes);
 app.use("/api/partners", partnerRoutes);
 app.use("/api/news", newsRoutes);
+app.use("/api/subscription", subscriptionRoutes);
 
 // Database Connection
 mongoose
