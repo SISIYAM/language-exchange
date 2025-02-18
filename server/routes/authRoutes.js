@@ -32,8 +32,8 @@ const generateToken = (res, userId) => {
 // @access  Public
 router.post("/register", async (req, res) => {
   try {
-    const { name, email, password } = req.body;
-
+    const { name, email, password, tandemID } = req.body;
+    console.log(req.body);
     // Check if user exists
     const userExists = await User.findOne({ email });
     if (userExists) {
@@ -45,14 +45,13 @@ router.post("/register", async (req, res) => {
       name,
       email,
       password,
-      tandemID: `user_${Date.now()}`,
     });
 
     // Create profile for the user
     const profile = await Profile.create({
       userId: user._id,
       name: user.name,
-      tandemID: user.tandemID,
+      tandemID: tandemID,
       dateOfBirth: null,
       location: "",
       description: "",

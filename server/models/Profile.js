@@ -10,7 +10,9 @@ const ProfileSchema = new mongoose.Schema(
     name: {
       type: String,
     },
-
+    tandemID: {
+      type: String,
+    },
     dateOfBirth: {
       type: Date,
     },
