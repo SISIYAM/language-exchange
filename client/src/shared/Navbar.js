@@ -21,18 +21,21 @@ const Navbar = () => {
   useEffect(() => {
     const token = Cookies.get("token");
     if (token) {
-      // Fetch both user and profile data
       const fetchData = async () => {
         try {
-          await dispatch(fetchLoggedInUser()).unwrap();
-          await dispatch(fetchProfile()).unwrap();
+          const userResult = await dispatch(fetchLoggedInUser()).unwrap();
+          console.log("User data fetched:", userResult);
+          const profileResult = await dispatch(fetchProfile()).unwrap();
+          console.log("Profile data fetched:", profileResult);
         } catch (err) {
           console.error("Error fetching user data:", err);
+          // Remove the token if it's invalid or expired
+          Cookies.remove("token");
         }
       };
       fetchData();
     }
-  }, [dispatch]);
+  }, [dispatch, pathName]); // Add pathName as a dependency
 
   const navList = [
     { name: t("nav.findPartner"), url: "community" },
@@ -61,9 +64,12 @@ const Navbar = () => {
     pathName.includes(privetPath)
   );
 
-  // Text color changes based on scroll on blog page only
   const textColorClass =
     pathName === "/blog" && !isScrolled ? "text-white" : "text-[#074C77]";
+
+  if (loading) {
+    return <div>Loading...</div>; // Show a loading spinner or skeleton
+  }
 
   return (
     <div

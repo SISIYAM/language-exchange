@@ -1,5 +1,4 @@
 const axios = require("axios");
-const User = require("../models/User"); // Import User Model
 
 // Fetch News from NewsAPI
 const fetchNewsFromNewsAPI = async (req, res) => {
@@ -13,6 +12,7 @@ const fetchNewsFromNewsAPI = async (req, res) => {
       description: article.description || "No Description",
       url: article.url || "#",
       source: article.source?.name || "Unknown",
+      image: article.urlToImage || "https://via.placeholder.com/300",
     }));
 
     res.json({ success: true, articles });
@@ -22,5 +22,4 @@ const fetchNewsFromNewsAPI = async (req, res) => {
   }
 };
 
-// ✅ Correct Export Syntax
 module.exports = { fetchNewsFromNewsAPI };
