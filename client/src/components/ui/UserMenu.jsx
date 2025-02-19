@@ -102,12 +102,7 @@ const UserMenu = () => {
 
   const menuItems = [
     { label: "Profile", path: "/profile" },
-    { label: "Languages", path: "/languages" },
-    { label: "Learning Preferences", path: "/learningpreferences" },
-    { label: "Topics", path: "/topics" },
-    { label: "Following", path: "/following" },
     { label: "Subscription", path: "/subscription" },
-    { label: "Settings", path: "/settings" },
   ];
 
   return (
