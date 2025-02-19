@@ -1,47 +1,14 @@
 "use client";
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { fetchConversationHistory } from "@/features/user/chatSlice";
 import MessageInput from "./MessageInput";
-import { FiPaperclip } from "react-icons/fi";
+import { FaPhone, FaVideo, FaPhoneSlash } from "react-icons/fa";
+import { ZegoUIKitPrebuilt } from "@zegocloud/zego-uikit-prebuilt";
+import { ZEGO_CONFIG } from "@/config/zegoConfig";
 
 const defaultAvatar =
   "https://imgs.search.brave.com/m12gFeEaYTH9TW9JHo1E4K4UFZBIAGpFdv-O_jdbty0/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly90My5m/dGNkbi5uZXQvanBn/LzAzLzQ2LzgzLzk2/LzM2MF9GXzM0Njgz/OTY4M182bkFQemJo/cFNrSXBiOHBtQXd1/ZmtDN2M1ZUQ3d1l3/cy5qcGc";
-
-const MessageContent = ({ message }) => {
-  const isImage = message.fileUrl?.match(/\.(jpg|jpeg|png|gif)$/i);
-  const isDocument = message.fileUrl && !isImage;
-
-  return (
-    <>
-      {message.content && <p className="mb-1">{message.content}</p>}
-
-      {isImage && (
-        <div className="mb-1">
-          <img
-            src={`http://localhost:8080${message.fileUrl}`}
-            alt="Attached image"
-            className="max-w-[200px] rounded-lg"
-          />
-        </div>
-      )}
-
-      {isDocument && (
-        <div className="mb-1">
-          <a
-            href={`http://localhost:8080${message.fileUrl}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center text-sm text-blue-500 hover:text-blue-600"
-          >
-            <FiPaperclip className="mr-1" />
-            {message.fileName || "Attached file"}
-          </a>
-        </div>
-      )}
-    </>
-  );
-};
 
 const ChatWindow = () => {
   const dispatch = useDispatch();
@@ -50,17 +17,9 @@ const ChatWindow = () => {
     (state) => state.chat
   );
   const messagesContainerRef = useRef(null);
-
-  const scrollToBottom = () => {
-    if (messagesContainerRef.current) {
-      const { scrollHeight, clientHeight } = messagesContainerRef.current;
-      messagesContainerRef.current.scrollTop = scrollHeight - clientHeight;
-    }
-  };
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [conversation]);
+  const [isCalling, setIsCalling] = useState(false);
+  const [isVideoCall, setIsVideoCall] = useState(false);
+  const zegoRef = useRef(null);
 
   useEffect(() => {
     if (currentUser?._id && selectedUser?._id) {
@@ -73,24 +32,107 @@ const ChatWindow = () => {
     }
   }, [selectedUser?._id, currentUser?._id, dispatch]);
 
+  useEffect(() => {
+    scrollToBottom();
+  }, [conversation]);
+
+  const scrollToBottom = () => {
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop =
+        messagesContainerRef.current.scrollHeight;
+    }
+  };
+
   const getProfilePicture = (user) => {
-    if (!user?.profilePicture) return defaultAvatar;
-    return `http://localhost:8080${user.profilePicture}`;
+    return user?.profilePicture
+      ? `http://localhost:8080${user.profilePicture}`
+      : defaultAvatar;
   };
 
   const formatTimestamp = (timestamp) => {
     try {
       const date = new Date(timestamp);
-      if (isNaN(date.getTime())) {
-        return "";
-      }
-      return date.toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
+      return !isNaN(date.getTime())
+        ? date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+        : "";
     } catch (error) {
       console.error("Error formatting timestamp:", error);
       return "";
+    }
+  };
+
+  const initializeZegoCloud = async () => {
+    if (!currentUser || !selectedUser) return;
+
+    try {
+      const roomID = [currentUser._id, selectedUser._id].sort().join("-");
+      const userID = currentUser._id.toString();
+      const userName = currentUser.name;
+
+      const kitToken = ZegoUIKitPrebuilt.generateKitTokenForTest(
+        ZEGO_CONFIG.appID,
+        ZEGO_CONFIG.serverSecret,
+        roomID,
+        userID,
+        userName
+      );
+
+      const zp = ZegoUIKitPrebuilt.create(kitToken);
+      zegoRef.current = zp;
+    } catch (error) {
+      console.error("Error initializing ZegoCloud:", error);
+    }
+  };
+
+  useEffect(() => {
+    initializeZegoCloud();
+  }, [selectedUser]);
+
+  const startVideoCall = async () => {
+    if (!zegoRef.current) return;
+    setIsVideoCall(true);
+    setIsCalling(true);
+
+    try {
+      await zegoRef.current.joinRoom({
+        container: document.getElementById("zego-video-container"),
+        scenario: { mode: ZegoUIKitPrebuilt.VideoConference },
+        showPreJoinView: true,
+      });
+    } catch (error) {
+      console.error("Error starting video call:", error);
+      setIsVideoCall(false);
+      setIsCalling(false);
+    }
+  };
+
+  const startVoiceCall = async () => {
+    if (!zegoRef.current) return;
+    setIsVideoCall(false);
+    setIsCalling(true);
+
+    try {
+      await zegoRef.current.joinRoom({
+        container: document.getElementById("zego-video-container"),
+        scenario: { mode: ZegoUIKitPrebuilt.OneONoneCall },
+        showPreJoinView: true,
+        turnOnCameraWhenJoining: false,
+      });
+    } catch (error) {
+      console.error("Error starting voice call:", error);
+      setIsCalling(false);
+    }
+  };
+
+  const endCall = async () => {
+    if (!zegoRef.current) return;
+
+    try {
+      await zegoRef.current.leaveRoom();
+      setIsCalling(false);
+      setIsVideoCall(false);
+    } catch (error) {
+      console.error("Error ending call:", error);
     }
   };
 
@@ -113,64 +155,85 @@ const ChatWindow = () => {
   return (
     <div className="flex-1 flex flex-col h-full">
       {/* Chat Header */}
-      <div className="p-4 border-b flex items-center space-x-4 bg-white">
-        <div className="relative w-12 h-12">
-          <img
-            src={getProfilePicture(selectedUser)}
-            alt={selectedUser.name}
-            className="rounded-full w-full h-full object-cover"
-          />
-          <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></span>
+      <div className="p-4 border-b flex items-center justify-between bg-white">
+        <div className="flex items-center space-x-4">
+          <div className="relative w-12 h-12">
+            <img
+              src={getProfilePicture(selectedUser)}
+              alt={selectedUser.name}
+              className="rounded-full w-full h-full object-cover"
+            />
+            <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></span>
+          </div>
+          <div>
+            <h3 className="font-semibold text-gray-800">{selectedUser.name}</h3>
+            <p className="text-sm text-gray-500">Online</p>
+          </div>
         </div>
-        <div>
-          <h3 className="font-semibold text-gray-800">{selectedUser.name}</h3>
-          <p className="text-sm text-gray-500">Online</p>
+        <div className="flex space-x-4">
+          {!isCalling ? (
+            <>
+              <button
+                onClick={startVoiceCall}
+                className="p-2 rounded-full hover:bg-gray-100"
+              >
+                <FaPhone className="w-5 h-5 text-blue-500" />
+              </button>
+              <button
+                onClick={startVideoCall}
+                className="p-2 rounded-full hover:bg-gray-100"
+              >
+                <FaVideo className="w-5 h-5 text-blue-500" />
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={endCall}
+              className="p-2 rounded-full hover:bg-gray-100"
+            >
+              <FaPhoneSlash className="w-5 h-5 text-red-500" />
+            </button>
+          )}
         </div>
       </div>
 
       {/* Chat Messages */}
       <div
         ref={messagesContainerRef}
-        className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 scroll-smooth"
+        className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50"
       >
-        {status === "loading" ? (
-          <div className="flex justify-center items-center h-full">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          </div>
-        ) : conversation?.length === 0 ? (
-          <div className="flex items-center justify-center h-full">
-            <p className="text-gray-500">
-              No messages yet. Start the conversation!
-            </p>
-          </div>
-        ) : (
-          conversation.map((message, index) => (
+        {conversation.map((message, index) => (
+          <div
+            key={index}
+            className={`flex ${
+              message.senderId === currentUser._id
+                ? "justify-end"
+                : "justify-start"
+            }`}
+          >
             <div
-              key={index}
-              className={`flex ${
+              className={`max-w-[70%] rounded-lg p-3 ${
                 message.senderId === currentUser._id
-                  ? "justify-end"
-                  : "justify-start"
+                  ? "bg-blue-500 text-white"
+                  : "bg-white text-gray-800"
               }`}
             >
-              <div
-                className={`max-w-[70%] rounded-lg p-3 ${
-                  message.senderId === currentUser._id
-                    ? "bg-blue-500 text-white"
-                    : "bg-white text-gray-800"
-                }`}
-              >
-                <MessageContent message={message} />
-                {message.timestamp && (
-                  <span className="text-xs opacity-70">
-                    {formatTimestamp(message.timestamp)}
-                  </span>
-                )}
-              </div>
+              <p>{message.content}</p>
+              <span className="text-xs opacity-70">
+                {formatTimestamp(message.timestamp)}
+              </span>
             </div>
-          ))
-        )}
+          </div>
+        ))}
       </div>
+
+      {/* Video Call Container */}
+      {isCalling && (
+        <div
+          id="zego-video-container"
+          className="fixed inset-0 bg-black z-50"
+        ></div>
+      )}
 
       {/* Message Input */}
       <MessageInput scrollToBottom={scrollToBottom} />

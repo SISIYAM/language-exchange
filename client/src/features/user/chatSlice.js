@@ -3,7 +3,9 @@ import axios from "axios";
 import { getSocket } from "@/utils/socket";
 
 // Base URL for the API
-const API_URL = "http://localhost:8080/api/chat";
+
+const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+const API_URL = `${apiUrl}/chat`;
 
 // ========================== Chat Async Thunks ==========================
 
