@@ -11,9 +11,80 @@ const memberRoutes = require("./routes/memberRoutes.js");
 const partnerRoutes = require("./routes/partnerRoutes.js");
 const newsRoutes = require("./routes/newsRoutes.js");
 const subscriptionRoutes = require("./routes/subscription");
+const chatRoutes = require("./routes/chatRoutes");
+const http = require("http");
+const { Server } = require("socket.io");
 
 dotenv.config();
 const app = express();
+const server = http.createServer(app);
+
+// Socket.IO setup
+const io = new Server(server, {
+  cors: {
+    origin: "http://localhost:3000",
+    methods: ["GET", "POST"],
+    credentials: true,
+  },
+  transports: ["websocket", "polling"],
+  path: "/socket.io/",
+  allowEIO3: true,
+  pingTimeout: 60000,
+  pingInterval: 25000,
+});
+
+// Store online users
+const onlineUsers = new Map();
+
+io.on("connection", (socket) => {
+  console.log("A user connected:", socket.id);
+
+  // Handle user joining
+  socket.on("addUser", (userId) => {
+    onlineUsers.set(userId, socket.id);
+    console.log("User added to online users:", userId, "Socket ID:", socket.id);
+    io.emit("getOnlineUsers", Array.from(onlineUsers.keys()));
+  });
+
+  // Handle new message
+  socket.on("sendMessage", (data) => {
+    console.log("Message received:", data);
+    try {
+      const receiverSocketId = onlineUsers.get(data.receiverId);
+      const messageData = {
+        ...data,
+        timestamp: new Date().toISOString(),
+      };
+
+      // Send to receiver if they're online
+      if (receiverSocketId) {
+        console.log("Sending message to receiver:", receiverSocketId);
+        io.to(receiverSocketId).emit("receiveMessage", messageData);
+      }
+
+      // Send confirmation back to sender
+      socket.emit("messageSent", messageData);
+    } catch (error) {
+      console.error("Error broadcasting message:", error);
+      socket.emit("messageError", { error: "Failed to send message" });
+    }
+  });
+
+  // Handle disconnect
+  socket.on("disconnect", () => {
+    console.log("User disconnected:", socket.id);
+    // Find and remove the disconnected user
+    for (const [userId, socketId] of onlineUsers.entries()) {
+      if (socketId === socket.id) {
+        onlineUsers.delete(userId);
+        console.log("Removed user from online users:", userId);
+        io.emit("getOnlineUsers", Array.from(onlineUsers.keys()));
+        io.emit("userOffline", userId);
+        break;
+      }
+    }
+  });
+});
 
 // Stripe webhook endpoint needs raw body
 app.post(
@@ -58,6 +129,7 @@ app.use("/api/members", memberRoutes);
 app.use("/api/partners", partnerRoutes);
 app.use("/api/news", newsRoutes);
 app.use("/api/subscription", subscriptionRoutes);
+app.use("/api/chat", chatRoutes);
 
 // Database Connection
 mongoose
@@ -66,4 +138,4 @@ mongoose
   .catch((err) => console.log(err));
 
 const PORT = process.env.PORT;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));

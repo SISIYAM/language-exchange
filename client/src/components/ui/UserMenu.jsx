@@ -8,6 +8,9 @@ import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import axios from "axios";
 
+const defaultAvatar =
+  "https://imgs.search.brave.com/m12gFeEaYTH9TW9JHo1E4K4UFZBIAGpFdv-O_jdbty0/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly90My5m/dGNkbi5uZXQvanBn/LzAzLzQ2LzgzLzk2/LzM2MF9GXzM0Njgz/OTY4M182bkFQemJo/cFNrSXBiOHBtQXd1/ZmtDN2M1ZUQ3d1l3/cy5qcGc";
+
 const UserMenu = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [subscriptionStatus, setSubscriptionStatus] = useState("free");
@@ -95,7 +98,7 @@ const UserMenu = () => {
   // Get the profile picture URL
   const profilePicture = profile?.profilePicture
     ? `http://localhost:8080${profile.profilePicture}`
-    : "/default-avatar.png";
+    : defaultAvatar;
 
   const menuItems = [
     { label: "Profile", path: "/profile" },

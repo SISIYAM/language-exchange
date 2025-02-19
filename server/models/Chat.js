@@ -1,23 +1,62 @@
 const mongoose = require("mongoose");
 
-const ChatSchema = new mongoose.Schema(
+const messageSchema = new mongoose.Schema({
+  senderId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    required: true,
+  },
+  content: {
+    type: String,
+  },
+  timestamp: {
+    type: Date,
+    default: Date.now,
+  },
+  read: {
+    type: Boolean,
+    default: false,
+  },
+  fileUrl: {
+    type: String,
+  },
+  fileName: {
+    type: String,
+  },
+  fileType: {
+    type: String,
+  },
+});
+
+const chatSchema = new mongoose.Schema(
   {
-    sender: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
+    participants: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        required: true,
+      },
+    ],
+    messages: [messageSchema],
+    lastMessage: {
+      type: messageSchema,
+      default: null,
     },
-    message: {
-      type: String,
-      required: true,
-    },
-    match: {
+    matchId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Match", // Ensure the 'match' field is linked to the 'Match' model
-      required: true,
+      ref: "Match",
+      default: null,
     },
   },
-  { timestamps: true } // This automatically adds createdAt and updatedAt fields
+  { timestamps: true }
 );
 
-module.exports = mongoose.model("Chat", ChatSchema); // Correct export
+// Update lastMessage when a new message is added
+chatSchema.pre("save", function (next) {
+  if (this.messages.length > 0) {
+    this.lastMessage = this.messages[this.messages.length - 1];
+  }
+  next();
+});
+
+module.exports = mongoose.model("Chat", chatSchema);
