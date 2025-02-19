@@ -1,11 +1,20 @@
-import axiosInstance from "@/config/axiosConfig";
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axios from "axios";
 import Cookies from "js-cookie"; // Import js-cookie for handling cookies
 import { resetProfile } from "./profileSlice";
 
 // Define API URL
-const API_URL = "http://localhost:8080/api/auth";
+const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+
+// Helper function to get headers with token
+const getHeaders = () => {
+  const token = Cookies.get("token");
+  return {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  };
+};
 
 // Async thunks for API calls
 
@@ -14,7 +23,7 @@ export const registerUser = createAsyncThunk(
   "user/registerUser",
   async (userData, { rejectWithValue }) => {
     try {
-      const response = await axios.post(`${API_URL}/signup`, userData);
+      const response = await axios.post(`${apiUrl}/auth/signup`, userData);
       console.log("Registration Response:", response.data);
       return response.data;
     } catch (error) {
@@ -29,7 +38,7 @@ export const loginUser = createAsyncThunk(
   "user/loginUser",
   async (userData, { rejectWithValue }) => {
     try {
-      const response = await axios.post(`${API_URL}/login`, userData);
+      const response = await axios.post(`${apiUrl}/auth/login`, userData);
       console.log("Login Successful:", response.data);
       Cookies.set("token", response.data.token, {
         expires: 1,
@@ -53,7 +62,10 @@ export const fetchLoggedInUser = createAsyncThunk(
   "user/fetchLoggedInUser",
   async (_, { rejectWithValue }) => {
     try {
-      const response = await axios.get("/api/auth/verify/me");
+      const response = await axios.get(
+        `${apiUrl}/auth/verify/me`,
+        getHeaders()
+      );
       return response.data;
     } catch (error) {
       return rejectWithValue(
@@ -68,7 +80,7 @@ export const getAllUsers = createAsyncThunk(
   "user/getAllUsers",
   async (_, { rejectWithValue }) => {
     try {
-      const response = await axios.get(`${API_URL}/`);
+      const response = await axios.get(`${apiUrl}/auth/`, getHeaders());
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response.data);
@@ -81,7 +93,10 @@ export const getUserById = createAsyncThunk(
   "user/getUserById",
   async (userId, { rejectWithValue }) => {
     try {
-      const response = await axios.get(`${API_URL}/${userId}`);
+      const response = await axios.get(
+        `${apiUrl}/auth/${userId}`,
+        getHeaders()
+      );
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response.data);
@@ -94,7 +109,11 @@ export const updateUser = createAsyncThunk(
   "user/updateUser",
   async ({ userId, userData }, { rejectWithValue }) => {
     try {
-      const response = await axios.put(`${API_URL}/update/${userId}`, userData);
+      const response = await axios.put(
+        `${apiUrl}/auth/update/${userId}`,
+        userData,
+        getHeaders()
+      );
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response.data);
@@ -107,9 +126,11 @@ export const requestPasswordReset = createAsyncThunk(
   "user/requestPasswordReset",
   async (email, { rejectWithValue }) => {
     try {
-      const response = await axios.post(`${API_URL}/request-password-reset`, {
-        email,
-      });
+      const response = await axios.post(
+        `${apiUrl}/auth/request-password-reset`,
+        { email },
+        getHeaders()
+      );
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response.data);
@@ -122,10 +143,11 @@ export const resetPassword = createAsyncThunk(
   "user/resetPassword",
   async ({ resetToken, newPassword }, { rejectWithValue }) => {
     try {
-      const response = await axios.post(`${API_URL}/reset-password`, {
-        resetToken,
-        newPassword,
-      });
+      const response = await axios.post(
+        `${apiUrl}/auth/reset-password`,
+        { resetToken, newPassword },
+        getHeaders()
+      );
       return response.data;
     } catch (error) {
       return rejectWithValue(error.response.data);
@@ -139,7 +161,7 @@ export const logout = createAsyncThunk(
   async (_, { dispatch, rejectWithValue }) => {
     try {
       // Call the logout endpoint
-      await axios.post("/api/auth/logout");
+      await axios.post(`${apiUrl}/auth/logout`, {}, getHeaders());
 
       // Remove the token
       Cookies.remove("token");
