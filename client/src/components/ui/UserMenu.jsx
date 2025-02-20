@@ -65,6 +65,11 @@ const UserMenu = () => {
     }
   }, [currentUser?._id]);
 
+  // If no user data is present, don't render the menu
+  if (!currentUser || !profile) {
+    return null;
+  }
+
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
   };

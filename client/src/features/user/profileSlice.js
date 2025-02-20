@@ -72,7 +72,16 @@ export const updateProfile = createAsyncThunk(
   "profile/updateProfile",
   async (profileData, { rejectWithValue }) => {
     try {
-      const response = await axios.put("/api/profile/me", profileData);
+      const token = Cookies.get("token");
+      if (!token) {
+        throw new Error("No token found. Please log in again.");
+      }
+      const response = await axios.put("/api/profile/me", profileData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        withCredentials: true,
+      });
       return response.data;
     } catch (error) {
       return rejectWithValue(

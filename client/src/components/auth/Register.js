@@ -257,23 +257,45 @@ const Register = () => {
 
           {/* Date of Birth Field */}
           <Controller
-            name="dob"
+            name="dateOfBirth"
             control={control}
-            defaultValue={""}
-            rules={{
-              required: "Date of birth is required",
-            }}
+            defaultValue=""
+            rules={{ required: "Date of Birth is required" }}
             render={({ field }) => (
               <input
                 {...field}
                 type="date"
-                placeholder="Your date of birth"
+                placeholder="Date of Birth"
                 className={`w-full border ${
-                  errors.dob ? "border-red-500" : "border-gray-300"
+                  errors.dateOfBirth ? "border-red-500" : "border-gray-300"
                 } rounded-lg p-3 focus:outline-none focus:border-blue-500`}
               />
             )}
           />
+          {errors.dateOfBirth && (
+            <p className="text-red-500 text-sm">{errors.dateOfBirth.message}</p>
+          )}
+
+          {/* Location Field */}
+          <Controller
+            name="location"
+            control={control}
+            defaultValue=""
+            rules={{ required: "Location is required" }}
+            render={({ field }) => (
+              <input
+                {...field}
+                type="text"
+                placeholder="Your city/location"
+                className={`w-full border ${
+                  errors.location ? "border-red-500" : "border-gray-300"
+                } rounded-lg p-3 focus:outline-none focus:border-blue-500`}
+              />
+            )}
+          />
+          {errors.location && (
+            <p className="text-red-500 text-sm">{errors.location.message}</p>
+          )}
 
           {/* Tandem ID Field */}
           <Controller
@@ -300,12 +322,12 @@ const Register = () => {
 
           {/* Submit Button */}
           <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
             type="submit"
-            className="w-full bg-blue-600 text-white rounded-lg py-3 mt-4 hover:bg-blue-700"
+            className="w-full bg-blue-500 text-white rounded-full py-3 hover:bg-blue-600 transition duration-300"
           >
-            Register
+            Sign Up
           </motion.button>
         </motion.form>
 

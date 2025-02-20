@@ -32,7 +32,7 @@ const generateToken = (res, userId) => {
 // @access  Public
 router.post("/register", async (req, res) => {
   try {
-    const { name, email, password, tandemID } = req.body;
+    const { name, email, password, dateOfBirth, location, tandemID } = req.body;
     console.log(req.body);
     // Check if user exists
     const userExists = await User.findOne({ email });
@@ -40,20 +40,28 @@ router.post("/register", async (req, res) => {
       return res.status(400).json({ message: "User already exists" });
     }
 
+    // Check if tandemID is already taken
+    const tandemIDExists = await Profile.findOne({ tandemID });
+    if (tandemIDExists) {
+      return res.status(400).json({ message: "Tandem ID is already taken" });
+    }
+
     // Create user
     const user = await User.create({
       name,
       email,
       password,
+      dateOfBirth,
+      location,
     });
 
     // Create profile for the user
     const profile = await Profile.create({
       userId: user._id,
       name: user.name,
-      tandemID: tandemID,
-      dateOfBirth: null,
-      location: "",
+      tandemID: tandemID, // Use the user-provided tandemID
+      dateOfBirth: dateOfBirth,
+      location: location,
       description: "",
       speaks: [],
       learns: [],
@@ -83,6 +91,9 @@ router.post("/register", async (req, res) => {
       _id: user._id,
       name: user.name,
       email: user.email,
+      dateOfBirth: user.dateOfBirth,
+      location: user.location,
+      tandemID: profile.tandemID, // Include tandemID in response
       token, // Token is sent in the response
     });
   } catch (error) {
@@ -130,6 +141,38 @@ router.get("/verify/login", protect, async (req, res) => {
 router.post("/logout", (req, res) => {
   res.cookie("token", "", { httpOnly: true, expires: new Date(0) });
   res.json({ message: "Logged out successfully" });
+});
+
+// @route   DELETE /api/auth/delete-account
+// @desc    Delete user account and all associated data
+// @access  Private
+router.delete("/delete-account", protect, async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    // Delete user's profile
+    await Profile.findOneAndDelete({ userId: userId });
+
+    // Delete user's member data
+    await Member.findOneAndDelete({ user: userId });
+
+    // Delete user's chat data (assuming you have a Chat model)
+    // await Chat.deleteMany({ $or: [{ sender: userId }] });
+
+    // Delete user's subscription data (assuming you have a Subscription model)
+    // await Subscription.findOneAndDelete({ userId: userId });
+
+    // Finally, delete the user
+    await User.findByIdAndDelete(userId);
+
+    // Clear the authentication cookie
+    res.cookie("token", "", { httpOnly: true, expires: new Date(0) });
+
+    res.json({ message: "Account deleted successfully" });
+  } catch (error) {
+    console.error("Account deletion error:", error);
+    res.status(500).json({ message: "Failed to delete account" });
+  }
 });
 
 module.exports = router;

@@ -9,6 +9,9 @@ import { usePathname } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import Cookies from "js-cookie";
+import { resetProfile } from "@/features/user/profileSlice";
+import { logout } from "@/features/user/userSlice";
+import { useRouter } from "next/navigation";
 
 const privet = ["/login", "/sign-up", "/forgot-password", "/reset-password"];
 
@@ -17,6 +20,7 @@ const Navbar = () => {
   const pathName = usePathname();
   const dispatch = useDispatch();
   const { currentUser, loading } = useSelector((state) => state.user);
+  const router = useRouter();
 
   useEffect(() => {
     const token = Cookies.get("token");
@@ -29,8 +33,15 @@ const Navbar = () => {
           console.log("Profile data fetched:", profileResult);
         } catch (err) {
           console.error("Error fetching user data:", err);
-          // Remove the token if it's invalid or expired
+          // Remove the token if it's invalid, expired, or user is deleted
           Cookies.remove("token");
+          // Clear Redux state
+          dispatch(resetProfile());
+          dispatch(logout());
+          // Redirect to login if not already there
+          if (!privet.some((privetPath) => pathName.includes(privetPath))) {
+            router.replace("/login");
+          }
         }
       };
       fetchData();

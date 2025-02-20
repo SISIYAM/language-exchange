@@ -416,4 +416,124 @@ router.get("/all/members", async (req, res) => {
   }
 });
 
+// @route   POST /api/profile/upload-photos
+// @desc    Upload multiple photos
+// @access  Private
+router.post(
+  "/upload-photos",
+  protect,
+  upload.array("photos", 5), // Allow up to 5 photos
+  async (req, res) => {
+    try {
+      if (!req.files || req.files.length === 0) {
+        return res.status(400).json({ message: "No files uploaded" });
+      }
+
+      // Convert file paths to URL paths
+      const photoUrls = req.files.map((file) => {
+        const relativePath = path
+          .relative(path.join(__dirname, ".."), file.path)
+          .replace(/\\/g, "/");
+        return `/uploads/profilePictures/${path.basename(file.path)}`;
+      });
+
+      // Update the profile with the new photo URLs
+      const profile = await Profile.findOne({ userId: req.user._id });
+
+      if (!profile) {
+        // If profile not found, delete the uploaded files
+        req.files.forEach((file) => {
+          try {
+            fs.unlinkSync(file.path);
+          } catch (unlinkError) {
+            console.error("Error deleting file:", unlinkError);
+          }
+        });
+        return res.status(404).json({ message: "Profile not found" });
+      }
+
+      // Add new photos to the existing photos array
+      profile.photos = [...profile.photos, ...photoUrls];
+      await profile.save();
+
+      res.json({
+        message: "Photos uploaded successfully",
+        photos: profile.photos,
+      });
+    } catch (error) {
+      // If there's an error, try to delete the uploaded files
+      if (req.files) {
+        req.files.forEach((file) => {
+          try {
+            fs.unlinkSync(file.path);
+          } catch (unlinkError) {
+            console.error("Error deleting file:", unlinkError);
+          }
+        });
+      }
+
+      console.error("Photos upload error:", error);
+      res.status(500).json({ message: "Error uploading photos" });
+    }
+  }
+);
+
+// @route   DELETE /api/profile/photos/:photoIndex
+// @desc    Delete a photo
+// @access  Private
+router.delete("/photos/:photoIndex", protect, async (req, res) => {
+  try {
+    const photoIndex = parseInt(req.params.photoIndex);
+    const profile = await Profile.findOne({ userId: req.user._id });
+
+    if (!profile) {
+      return res.status(404).json({ message: "Profile not found" });
+    }
+
+    if (photoIndex < 0 || photoIndex >= profile.photos.length) {
+      return res.status(400).json({ message: "Invalid photo index" });
+    }
+
+    // Get the photo URL to delete
+    const photoUrl = profile.photos[photoIndex];
+
+    // Remove the photo from the array
+    profile.photos.splice(photoIndex, 1);
+    await profile.save();
+
+    // Delete the actual file
+    const filePath = path.join(__dirname, "..", photoUrl);
+    try {
+      fs.unlinkSync(filePath);
+    } catch (unlinkError) {
+      console.error("Error deleting file:", unlinkError);
+    }
+
+    res.json({
+      message: "Photo deleted successfully",
+      photos: profile.photos,
+    });
+  } catch (error) {
+    console.error("Photo deletion error:", error);
+    res.status(500).json({ message: "Error deleting photo" });
+  }
+});
+
+// @route   GET /api/profile/followers
+// @desc    Get users who follow the current user
+// @access  Private
+router.get("/followers", protect, async (req, res) => {
+  try {
+    // Find all profiles that have the current user's ID in their following array
+    const followers = await Profile.find({
+      following: req.user._id,
+    }).populate("userId", "name");
+
+    res.json(followers);
+  } catch (error) {
+    console.error("Error fetching followers:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 module.exports = router;

@@ -92,6 +92,10 @@ const ProfileSchema = new mongoose.Schema(
       default: true,
     },
     profilePicture: { type: String, default: null },
+    photos: {
+      type: [String],
+      default: [],
+    },
     following: [
       {
         type: mongoose.Schema.Types.ObjectId,
