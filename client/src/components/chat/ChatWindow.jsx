@@ -1,51 +1,23 @@
 "use client";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { useSelector, useDispatch } from "react-redux";
-import { fetchConversationHistory } from "@/features/user/chatSlice";
+import {
+  fetchConversationHistory,
+  createNewMessage,
+} from "@/features/user/chatSlice"; // Import sendMessage action
 import MessageInput from "./MessageInput";
-import { FaPhone, FaVideo, FaPhoneSlash, FaFile } from "react-icons/fa";
-import { ZEGO_CONFIG } from "@/config/zegoConfig";
+import { FaPhone, FaVideo } from "react-icons/fa";
 
 const defaultAvatar =
   "https://imgs.search.brave.com/m12gFeEaYTH9TW9JHo1E4K4UFZBIAGpFdv-O_jdbty0/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly90My5m/dGNkbi5uZXQvanBn/LzAzLzQ2LzgzLzk2/LzM2MF9GXzM0Njgz/OTY4M182bkFQemJo/cFNrSXBiOHBtQXd1/ZmtDN2M1ZUQ3d1l3/cy5qcGc";
 
 const ChatWindow = () => {
   const dispatch = useDispatch();
+  const router = useRouter();
   const { currentUser } = useSelector((state) => state.user);
-  const { selectedUser, conversation, status } = useSelector(
-    (state) => state.chat
-  );
+  const { selectedUser, conversation } = useSelector((state) => state.chat);
   const messagesContainerRef = useRef(null);
-  const [isCalling, setIsCalling] = useState(false);
-  const [isVideoCall, setIsVideoCall] = useState(false);
-  const zegoRef = useRef(null);
-  const ZegoUIKitRef = useRef(null);
-
-  useEffect(() => {
-    let mounted = true;
-
-    const loadZegoUIKit = async () => {
-      if (typeof window === "undefined") return;
-
-      try {
-        const module = await import("@zegocloud/zego-uikit-prebuilt");
-        if (mounted) {
-          ZegoUIKitRef.current = module.ZegoUIKitPrebuilt;
-          if (currentUser?._id && selectedUser?._id) {
-            initializeZegoCloud();
-          }
-        }
-      } catch (error) {
-        console.error("Error loading ZegoUIKit:", error);
-      }
-    };
-
-    loadZegoUIKit();
-
-    return () => {
-      mounted = false;
-    };
-  }, [currentUser?._id, selectedUser?._id]);
 
   useEffect(() => {
     if (currentUser?._id && selectedUser?._id) {
@@ -87,75 +59,28 @@ const ChatWindow = () => {
     }
   };
 
-  const initializeZegoCloud = async () => {
-    if (!currentUser || !selectedUser || !ZegoUIKitRef.current) return;
+  // Generate and send a call link
+  const startCall = (isVideo) => {
+    if (!currentUser || !selectedUser) return;
 
-    try {
-      const roomID = [currentUser._id, selectedUser._id].sort().join("-");
-      const userID = currentUser._id.toString();
-      const userName = currentUser.name;
+    const roomID = [currentUser._id, selectedUser._id].sort().join("-");
+    const userID = currentUser._id.toString();
+    const userName = encodeURIComponent(currentUser.name);
+    const callLink = `http://localhost:3000/call?roomID=${roomID}&userID=${userID}&userName=${userName}&isVideoCall=${isVideo}`;
 
-      const kitToken = ZegoUIKitRef.current.generateKitTokenForTest(
-        ZEGO_CONFIG.appID,
-        ZEGO_CONFIG.serverSecret,
-        roomID,
-        userID,
-        userName
-      );
+    // Send call link to the conversation
+    dispatch(
+      createNewMessage({
+        senderId: currentUser._id,
+        receiverId: selectedUser._id,
+        content: `📞 [Join Call](${callLink})`,
+        type: "call",
+        timestamp: new Date().toISOString(),
+      })
+    );
 
-      const zp = ZegoUIKitRef.current.create(kitToken);
-      zegoRef.current = zp;
-    } catch (error) {
-      console.error("Error initializing ZegoCloud:", error);
-    }
-  };
-
-  const startVideoCall = async () => {
-    if (!zegoRef.current || !ZegoUIKitRef.current) return;
-    setIsVideoCall(true);
-    setIsCalling(true);
-
-    try {
-      await zegoRef.current.joinRoom({
-        container: document.getElementById("zego-video-container"),
-        scenario: { mode: ZegoUIKitRef.current.VideoConference },
-        showPreJoinView: true,
-      });
-    } catch (error) {
-      console.error("Error starting video call:", error);
-      setIsVideoCall(false);
-      setIsCalling(false);
-    }
-  };
-
-  const startVoiceCall = async () => {
-    if (!zegoRef.current || !ZegoUIKitRef.current) return;
-    setIsVideoCall(false);
-    setIsCalling(true);
-
-    try {
-      await zegoRef.current.joinRoom({
-        container: document.getElementById("zego-video-container"),
-        scenario: { mode: ZegoUIKitRef.current.OneONoneCall },
-        showPreJoinView: true,
-        turnOnCameraWhenJoining: false,
-      });
-    } catch (error) {
-      console.error("Error starting voice call:", error);
-      setIsCalling(false);
-    }
-  };
-
-  const endCall = async () => {
-    if (!zegoRef.current) return;
-
-    try {
-      await zegoRef.current.leaveRoom();
-      setIsCalling(false);
-      setIsVideoCall(false);
-    } catch (error) {
-      console.error("Error ending call:", error);
-    }
+    // Redirect to the call page
+    router.push(callLink);
   };
 
   if (!currentUser) {
@@ -193,29 +118,18 @@ const ChatWindow = () => {
           </div>
         </div>
         <div className="flex space-x-4">
-          {!isCalling ? (
-            <>
-              <button
-                onClick={startVoiceCall}
-                className="p-2 rounded-full hover:bg-gray-100"
-              >
-                <FaPhone className="w-5 h-5 text-blue-500" />
-              </button>
-              <button
-                onClick={startVideoCall}
-                className="p-2 rounded-full hover:bg-gray-100"
-              >
-                <FaVideo className="w-5 h-5 text-blue-500" />
-              </button>
-            </>
-          ) : (
-            <button
-              onClick={endCall}
-              className="p-2 rounded-full hover:bg-gray-100"
-            >
-              <FaPhoneSlash className="w-5 h-5 text-red-500" />
-            </button>
-          )}
+          <button
+            onClick={() => startCall(false)}
+            className="p-2 rounded-full hover:bg-gray-100"
+          >
+            <FaPhone className="w-5 h-5 text-blue-500" />
+          </button>
+          <button
+            onClick={() => startCall(true)}
+            className="p-2 rounded-full hover:bg-gray-100"
+          >
+            <FaVideo className="w-5 h-5 text-blue-500" />
+          </button>
         </div>
       </div>
 
@@ -240,30 +154,18 @@ const ChatWindow = () => {
                   : "bg-white text-gray-800"
               }`}
             >
-              {message.fileUrl && (
-                <div className="mb-2">
-                  {message.fileUrl.match(/\.(jpg|jpeg|png|gif)$/i) ? (
-                    <img
-                      src={`http://localhost:8080${message.fileUrl}`}
-                      alt="Shared file"
-                      className="max-w-full rounded-lg"
-                    />
-                  ) : (
-                    <a
-                      href={`http://localhost:8080${message.fileUrl}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center space-x-2 text-sm underline"
-                    >
-                      <FaFile className="w-4 h-4" />
-                      <span>
-                        {message.fileName || message.fileUrl.split("/").pop()}
-                      </span>
-                    </a>
-                  )}
-                </div>
+              {message.type === "call" ? (
+                <a
+                  href={message.content.split("](")[1].replace(")", "")}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 underline"
+                >
+                  {message.content}
+                </a>
+              ) : (
+                <p>{message.content}</p>
               )}
-              <p>{message.content}</p>
               <span className="text-xs opacity-70">
                 {formatTimestamp(message.timestamp)}
               </span>
@@ -271,14 +173,6 @@ const ChatWindow = () => {
           </div>
         ))}
       </div>
-
-      {/* Video Call Container */}
-      {isCalling && (
-        <div
-          id="zego-video-container"
-          className="fixed inset-0 bg-black z-50"
-        ></div>
-      )}
 
       {/* Message Input */}
       <MessageInput scrollToBottom={scrollToBottom} />
