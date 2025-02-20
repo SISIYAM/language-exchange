@@ -85,8 +85,9 @@ exports.getConversationHistory = async (req, res) => {
 // Send a message
 exports.sendMessage = async (req, res) => {
   try {
-    const { content, receiverId, participants } = req.body;
+    const { content, receiverId, type } = req.body;
     const senderId = req.user._id;
+    // console.log(req.body);
 
     // Find existing chat or create new one
     let chat = await Chat.findOne({
@@ -104,6 +105,7 @@ exports.sendMessage = async (req, res) => {
     const newMessage = {
       senderId,
       content,
+      type,
       timestamp: new Date(),
     };
 
@@ -113,7 +115,7 @@ exports.sendMessage = async (req, res) => {
       newMessage.fileName = req.file.originalname;
       newMessage.fileType = req.file.mimetype;
     }
-
+    console.log(newMessage);
     // Add new message to chat
     chat.messages.push(newMessage);
     await chat.save();

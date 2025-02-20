@@ -67,21 +67,34 @@ const ChatWindow = () => {
     }
   };
 
-  // Generate and send a call link
   const startCall = (isVideo) => {
     if (!currentUser || !selectedUser) return;
 
     const roomID = [currentUser._id, selectedUser._id].sort().join("-");
     const userID = currentUser._id.toString();
-    const userName = encodeURIComponent(currentUser.name);
-    const callLink = `http://localhost:3000/call?roomID=${roomID}&userID=${userID}&userName=${userName}&isVideoCall=${isVideo}`;
+    const receiverID = selectedUser._id.toString();
+    const receiverName = selectedUser.name;
+    const userName = currentUser.name;
+    const callLink = `http://localhost:3000/call?roomID=${roomID}&userID=${receiverID}&userName=${encodeURIComponent(
+      receiverName
+    )}&isVideoCall=${isVideo}`;
 
-    // Send call link to the conversation
+    const callMessage = `
+    <div style="padding: 10px; border-radius: 8px; background: #f1f1f1; display: inline-block;">
+      <p><strong style="color:#000000">${userName}</strong> started a ${
+      isVideo ? "video" : "audio"
+    } call.</p>
+      <button style="padding: 10px 15px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;">
+        <a href="${callLink}" target="_blank" style="text-decoration: none; color: white;">📞 Join Call</a>
+      </button>
+    </div>
+  `;
+
     dispatch(
       createNewMessage({
         senderId: currentUser._id,
         receiverId: selectedUser._id,
-        content: `📞 [Join Call](${callLink})`,
+        content: callMessage, // Save HTML content
         type: "call",
         timestamp: new Date().toISOString(),
       })
@@ -163,14 +176,7 @@ const ChatWindow = () => {
               }`}
             >
               {message.type === "call" ? (
-                <a
-                  href={message.content.split("](")[1].replace(")", "")}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-600 underline"
-                >
-                  {message.content}
-                </a>
+                <div dangerouslySetInnerHTML={{ __html: message.content }} />
               ) : message.fileUrl ? (
                 message.fileUrl.match(/\.(jpg|jpeg|png|gif)$/i) ? (
                   // Image file

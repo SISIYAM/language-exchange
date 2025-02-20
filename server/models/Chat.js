@@ -26,6 +26,10 @@ const messageSchema = new mongoose.Schema({
   fileType: {
     type: String,
   },
+  type: {
+    type: String,
+    default: "text",
+  },
 });
 
 const chatSchema = new mongoose.Schema(

@@ -1,4 +1,3 @@
-"use client";
 import React, { useEffect, useRef, useState } from "react";
 import {
   FaPhone,
@@ -210,7 +209,11 @@ const Conversation = () => {
                   : "bg-white text-gray-800"
               }`}
             >
-              <p>{message.content}</p>
+              {message.type === "call" ? (
+                <div dangerouslySetInnerHTML={{ __html: message.content }} />
+              ) : (
+                <p>{message.content}</p>
+              )}
               <span className="text-xs opacity-70">
                 {new Date(message.timestamp).toLocaleTimeString()}
               </span>
