@@ -1,6 +1,10 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import BlogCard from "./BlogCard";
+import { useRouter } from "next/navigation";
+import { useSelector } from "react-redux";
+import axios from "axios";
+import { toast } from "react-hot-toast";
 
 const BlogSection = () => {
   const [articles, setArticles] = useState([]);
@@ -8,8 +12,28 @@ const BlogSection = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [limit, setLimit] = useState(10); // Initial limit to load 10 articles at a time
+  const [subscriptionStatus, setSubscriptionStatus] = useState("free");
+  const router = useRouter();
+  const { currentUser } = useSelector((state) => state.user);
 
   const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+
+  // Fetch subscription status
+  useEffect(() => {
+    const fetchSubscriptionStatus = async () => {
+      if (!currentUser?._id) return;
+      try {
+        const response = await axios.get(`${apiUrl}/subscription/status`, {
+          withCredentials: true,
+        });
+        setSubscriptionStatus(response.data.status);
+      } catch (error) {
+        console.error("Error fetching subscription status:", error);
+      }
+    };
+
+    fetchSubscriptionStatus();
+  }, [currentUser]);
 
   // Function to fetch articles
   const fetchArticles = async (page = 1) => {
@@ -20,8 +44,16 @@ const BlogSection = () => {
       );
       const data = await response.json();
       if (data.success) {
-        setArticles((prevArticles) => [...prevArticles, ...data.articles]); // Append new articles to the existing list
-        setTotalPages(Math.ceil(data.articles.length / limit)); // Calculate total pages
+        // Mark random articles as premium (for demonstration)
+        const articlesWithPremium = data.articles.map((article) => ({
+          ...article,
+          isPremium: Math.random() < 0.3, // 30% chance of being premium
+        }));
+        setArticles((prevArticles) => [
+          ...prevArticles,
+          ...articlesWithPremium,
+        ]);
+        setTotalPages(Math.ceil(data.articles.length / limit));
       }
       setLoading(false);
     } catch (error) {
@@ -41,8 +73,14 @@ const BlogSection = () => {
   };
 
   // Function to handle article click and redirect to the article's URL
-  const handleArticleClick = (url) => {
-    window.open(url, "_blank"); // Open the URL in a new tab
+  const handleArticleClick = (article) => {
+    if (article.isPremium && subscriptionStatus !== "premium") {
+      toast.error("This content is only available to premium users");
+      // Optional: Redirect to subscription page
+      router.push("/subscription");
+      return;
+    }
+    window.open(article.url, "_blank"); // Open the URL in a new tab
   };
 
   return (
@@ -51,8 +89,8 @@ const BlogSection = () => {
         {articles.map((article, index) => (
           <div
             key={index}
-            onClick={() => handleArticleClick(article.url)} // Redirect to the article's URL
-            className="cursor-pointer" // Add cursor pointer to indicate clickability
+            onClick={() => handleArticleClick(article)}
+            className="cursor-pointer relative"
           >
             <BlogCard
               category={article.source} // Use source as category
@@ -60,6 +98,8 @@ const BlogSection = () => {
               description={article.description}
               readTime="5 min" // Placeholder for read time
               image={article.image} // Use the image from the API response
+              isPremium={article.isPremium}
+              isUserPremium={subscriptionStatus === "premium"}
             />
           </div>
         ))}

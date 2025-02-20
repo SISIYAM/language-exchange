@@ -42,9 +42,17 @@ const ChatWindow = () => {
   };
 
   const getProfilePicture = (user) => {
-    return user?.profilePicture
-      ? `http://localhost:8080${user.profilePicture}`
-      : defaultAvatar;
+    if (!user?.profilePicture) return defaultAvatar;
+    try {
+      return user.profilePicture.startsWith("http")
+        ? user.profilePicture
+        : `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"}${
+            user.profilePicture
+          }`;
+    } catch (error) {
+      console.error("Error getting profile picture:", error);
+      return defaultAvatar;
+    }
   };
 
   const formatTimestamp = (timestamp) => {
@@ -163,10 +171,63 @@ const ChatWindow = () => {
                 >
                   {message.content}
                 </a>
+              ) : message.fileUrl ? (
+                message.fileUrl.match(/\.(jpg|jpeg|png|gif)$/i) ? (
+                  // Image file
+                  <div className="mb-2">
+                    <img
+                      src={`http://localhost:8080${message.fileUrl}`}
+                      alt="Shared image"
+                      className="max-w-full rounded-lg"
+                      onClick={() =>
+                        window.open(
+                          `http://localhost:8080${message.fileUrl}`,
+                          "_blank"
+                        )
+                      }
+                      style={{ cursor: "pointer" }}
+                    />
+                    {message.content && (
+                      <p className="mt-2">{message.content}</p>
+                    )}
+                  </div>
+                ) : (
+                  // Other file types
+                  <div className="flex flex-col">
+                    <a
+                      href={`http://localhost:8080${message.fileUrl}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`flex items-center gap-2 ${
+                        message.senderId === currentUser._id
+                          ? "text-white hover:text-gray-200"
+                          : "text-blue-500 hover:text-blue-700"
+                      }`}
+                    >
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                        />
+                      </svg>
+                      {message.fileName || "Download file"}
+                    </a>
+                    {message.content && (
+                      <p className="mt-2">{message.content}</p>
+                    )}
+                  </div>
+                )
               ) : (
                 <p>{message.content}</p>
               )}
-              <span className="text-xs opacity-70">
+              <span className="text-xs opacity-70 block mt-1">
                 {formatTimestamp(message.timestamp)}
               </span>
             </div>
