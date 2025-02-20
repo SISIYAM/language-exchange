@@ -59,7 +59,7 @@ const CallPage = () => {
 
     return () => {
       if (zegoRef.current) {
-        zegoRef.current.destroy(); // 🔹 Use destroy() instead of leaveRoom()
+        zegoRef.current.destroy();
       }
     };
   }, [searchParams, router]);

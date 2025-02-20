@@ -75,17 +75,21 @@ const ChatWindow = () => {
     const receiverID = selectedUser._id.toString();
     const receiverName = selectedUser.name;
     const userName = currentUser.name;
-    const callLink = `http://localhost:3000/call?roomID=${roomID}&userID=${receiverID}&userName=${encodeURIComponent(
+    const callLink = `http://localhost:3000/call?roomID=${roomID}&userID=${userID}&userName=${encodeURIComponent(
+      userName
+    )}&isVideoCall=${isVideo}`;
+
+    const ReceiverCallLink = `http://localhost:3000/call?roomID=${roomID}&userID=${receiverID}&userName=${encodeURIComponent(
       receiverName
     )}&isVideoCall=${isVideo}`;
 
     const callMessage = `
     <div style="padding: 10px; border-radius: 8px; background: #f1f1f1; display: inline-block;">
-      <p><strong style="color:#000000">${userName}</strong> started a ${
+      <p style="color:#000000; margin:5px"><strong >${userName}</strong> <br> started a ${
       isVideo ? "video" : "audio"
     } call.</p>
       <button style="padding: 10px 15px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;">
-        <a href="${callLink}" target="_blank" style="text-decoration: none; color: white;">📞 Join Call</a>
+        <a href="${ReceiverCallLink}" target="_blank" style="text-decoration: none; color: white;">📞 Join Call</a>
       </button>
     </div>
   `;

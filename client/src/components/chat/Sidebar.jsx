@@ -202,10 +202,18 @@ const Sidebar = () => {
   const getLastMessage = useCallback(
     (chat) => {
       if (!chat?.lastMessage) return "No messages yet";
-      const content = chat.lastMessage.content;
-      if (chat.lastMessage.senderId === currentUser?._id) {
+
+      const { content, type, senderId } = chat.lastMessage;
+
+      // Check if the message is a call type
+      if (type === "call") {
+        return "Started a call";
+      }
+
+      if (senderId === currentUser?._id) {
         return `You: ${content || "Sent a file"}`;
       }
+
       return content || "Sent a file";
     },
     [currentUser?._id]
