@@ -91,20 +91,59 @@ const Sidebar = () => {
   };
 
   const getLastMessage = (user) => {
-    return user.lastMessage?.content || "No messages yet";
+    const chat = chatList.find(
+      (chat) =>
+        chat.participants.includes(user._id) &&
+        chat.participants.includes(currentUser._id)
+    );
+
+    if (!chat?.lastMessage) return "No messages yet";
+    return chat.lastMessage.content || "Sent a file";
   };
 
   const getLastMessageTime = (user) => {
-    const timestamp = user.lastMessage?.timestamp || user.updatedAt;
+    const chat = chatList.find(
+      (chat) =>
+        chat.participants.includes(user._id) &&
+        chat.participants.includes(currentUser._id)
+    );
+
+    const timestamp = chat?.lastMessage?.timestamp;
     if (!timestamp) return "";
-    return new Date(timestamp).toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+
+    const messageDate = new Date(timestamp);
+    const today = new Date();
+
+    if (messageDate.toDateString() === today.toDateString()) {
+      return messageDate.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    }
+    return messageDate.toLocaleDateString();
   };
 
   // Get the list of users to display based on search term
   const displayUsers = searchTerm.trim() ? filteredUsers : users;
+
+  // Sort users based on latest message timestamp
+  const sortedUsers = [...displayUsers].sort((a, b) => {
+    const chatA = chatList.find(
+      (chat) =>
+        chat.participants.includes(a._id) &&
+        chat.participants.includes(currentUser._id)
+    );
+    const chatB = chatList.find(
+      (chat) =>
+        chat.participants.includes(b._id) &&
+        chat.participants.includes(currentUser._id)
+    );
+
+    const timeA = chatA?.lastMessage?.timestamp || 0;
+    const timeB = chatB?.lastMessage?.timestamp || 0;
+
+    return new Date(timeB) - new Date(timeA);
+  });
 
   if (!currentUser) {
     return (
@@ -161,7 +200,7 @@ const Sidebar = () => {
               : "No conversations yet"}
           </p>
         ) : (
-          displayUsers.map((user) => (
+          sortedUsers.map((user) => (
             <div
               key={user._id}
               onClick={() => dispatch(selectChatUser(user))}

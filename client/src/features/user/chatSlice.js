@@ -154,6 +154,18 @@ const chatSlice = createSlice({
           (a, b) =>
             new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
         );
+
+        // Update the chat list with the latest message
+        const chatIndex = state.chatList.findIndex(
+          (chat) =>
+            chat.participants.includes(message.senderId) &&
+            chat.participants.includes(message.receiverId)
+        );
+
+        if (chatIndex !== -1) {
+          state.chatList[chatIndex].lastMessage = message;
+          state.chatList[chatIndex].updatedAt = message.timestamp;
+        }
       }
     },
     // Add incoming message to the chat
@@ -181,6 +193,18 @@ const chatSlice = createSlice({
             (a, b) =>
               new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
           );
+
+          // Update the chat list with the latest message
+          const chatIndex = state.chatList.findIndex(
+            (chat) =>
+              chat.participants.includes(message.senderId) &&
+              chat.participants.includes(message.receiverId)
+          );
+
+          if (chatIndex !== -1) {
+            state.chatList[chatIndex].lastMessage = message;
+            state.chatList[chatIndex].updatedAt = message.timestamp;
+          }
         }
       }
     },
@@ -232,18 +256,6 @@ const chatSlice = createSlice({
         state.status = "failed";
         state.error = action.payload;
       })
-      // Sending a new message
-      .addCase(createNewMessage.pending, (state) => {
-        state.status = "loading";
-      })
-      .addCase(createNewMessage.fulfilled, (state) => {
-        state.status = "succeeded";
-        // Remove adding message here since it will be handled by socket events
-      })
-      .addCase(createNewMessage.rejected, (state, action) => {
-        state.status = "failed";
-        state.error = action.payload;
-      })
       // Fetch all chats
       .addCase(fetchAllChats.pending, (state) => {
         state.status = "loading";
@@ -252,38 +264,45 @@ const chatSlice = createSlice({
         state.status = "succeeded";
         state.chatList = action.payload;
 
-        // Get the current user ID from the state
-        const currentUserId = action.meta.arg?.currentUserId;
-
-        // Get all unique users from chats excluding current user
-        const chatUsers = action.payload.reduce((users, chat) => {
-          // Find the other participant (not the current user)
-          const otherParticipant = chat.participants.find(
-            (p) => p._id !== currentUserId
+        // Update users list with the latest chat information
+        state.users = state.users.map((user) => {
+          const userChat = action.payload.find((chat) =>
+            chat.participants.includes(user._id)
           );
-          if (otherParticipant) {
-            users.push({
-              ...otherParticipant,
-              lastMessage: chat.lastMessage,
-              updatedAt: chat.updatedAt,
-            });
-          }
-          return users;
-        }, []);
-
-        // Sort users by last message timestamp
-        chatUsers.sort((a, b) => {
-          const timeA = a.lastMessage?.timestamp || a.updatedAt || 0;
-          const timeB = b.lastMessage?.timestamp || b.updatedAt || 0;
-          return new Date(timeB) - new Date(timeA);
+          return {
+            ...user,
+            hasChat: !!userChat,
+          };
         });
-
-        state.users = chatUsers;
-        state.filteredUsers = chatUsers;
       })
       .addCase(fetchAllChats.rejected, (state, action) => {
         state.status = "failed";
         state.error = action.payload;
+      })
+      // Create new message
+      .addCase(createNewMessage.fulfilled, (state, action) => {
+        state.status = "succeeded";
+        const message = action.payload;
+
+        // Update chat list with new message
+        const chatIndex = state.chatList.findIndex(
+          (chat) =>
+            chat.participants.includes(message.senderId) &&
+            chat.participants.includes(message.receiverId)
+        );
+
+        if (chatIndex !== -1) {
+          state.chatList[chatIndex].lastMessage = message;
+        }
+
+        // Also update conversation if this is the current chat
+        if (
+          state.selectedUser &&
+          (state.selectedUser._id === message.senderId ||
+            state.selectedUser._id === message.receiverId)
+        ) {
+          state.conversation.push(message);
+        }
       });
   },
 });

@@ -3,8 +3,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { fetchConversationHistory } from "@/features/user/chatSlice";
 import MessageInput from "./MessageInput";
-import { FaPhone, FaVideo, FaPhoneSlash } from "react-icons/fa";
-import { ZegoUIKitPrebuilt } from "@zegocloud/zego-uikit-prebuilt";
+import { FaPhone, FaVideo, FaPhoneSlash, FaFile } from "react-icons/fa";
 import { ZEGO_CONFIG } from "@/config/zegoConfig";
 
 const defaultAvatar =
@@ -20,6 +19,33 @@ const ChatWindow = () => {
   const [isCalling, setIsCalling] = useState(false);
   const [isVideoCall, setIsVideoCall] = useState(false);
   const zegoRef = useRef(null);
+  const ZegoUIKitRef = useRef(null);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadZegoUIKit = async () => {
+      if (typeof window === "undefined") return;
+
+      try {
+        const module = await import("@zegocloud/zego-uikit-prebuilt");
+        if (mounted) {
+          ZegoUIKitRef.current = module.ZegoUIKitPrebuilt;
+          if (currentUser?._id && selectedUser?._id) {
+            initializeZegoCloud();
+          }
+        }
+      } catch (error) {
+        console.error("Error loading ZegoUIKit:", error);
+      }
+    };
+
+    loadZegoUIKit();
+
+    return () => {
+      mounted = false;
+    };
+  }, [currentUser?._id, selectedUser?._id]);
 
   useEffect(() => {
     if (currentUser?._id && selectedUser?._id) {
@@ -62,14 +88,14 @@ const ChatWindow = () => {
   };
 
   const initializeZegoCloud = async () => {
-    if (!currentUser || !selectedUser) return;
+    if (!currentUser || !selectedUser || !ZegoUIKitRef.current) return;
 
     try {
       const roomID = [currentUser._id, selectedUser._id].sort().join("-");
       const userID = currentUser._id.toString();
       const userName = currentUser.name;
 
-      const kitToken = ZegoUIKitPrebuilt.generateKitTokenForTest(
+      const kitToken = ZegoUIKitRef.current.generateKitTokenForTest(
         ZEGO_CONFIG.appID,
         ZEGO_CONFIG.serverSecret,
         roomID,
@@ -77,26 +103,22 @@ const ChatWindow = () => {
         userName
       );
 
-      const zp = ZegoUIKitPrebuilt.create(kitToken);
+      const zp = ZegoUIKitRef.current.create(kitToken);
       zegoRef.current = zp;
     } catch (error) {
       console.error("Error initializing ZegoCloud:", error);
     }
   };
 
-  useEffect(() => {
-    initializeZegoCloud();
-  }, [selectedUser]);
-
   const startVideoCall = async () => {
-    if (!zegoRef.current) return;
+    if (!zegoRef.current || !ZegoUIKitRef.current) return;
     setIsVideoCall(true);
     setIsCalling(true);
 
     try {
       await zegoRef.current.joinRoom({
         container: document.getElementById("zego-video-container"),
-        scenario: { mode: ZegoUIKitPrebuilt.VideoConference },
+        scenario: { mode: ZegoUIKitRef.current.VideoConference },
         showPreJoinView: true,
       });
     } catch (error) {
@@ -107,14 +129,14 @@ const ChatWindow = () => {
   };
 
   const startVoiceCall = async () => {
-    if (!zegoRef.current) return;
+    if (!zegoRef.current || !ZegoUIKitRef.current) return;
     setIsVideoCall(false);
     setIsCalling(true);
 
     try {
       await zegoRef.current.joinRoom({
         container: document.getElementById("zego-video-container"),
-        scenario: { mode: ZegoUIKitPrebuilt.OneONoneCall },
+        scenario: { mode: ZegoUIKitRef.current.OneONoneCall },
         showPreJoinView: true,
         turnOnCameraWhenJoining: false,
       });
@@ -218,6 +240,29 @@ const ChatWindow = () => {
                   : "bg-white text-gray-800"
               }`}
             >
+              {message.fileUrl && (
+                <div className="mb-2">
+                  {message.fileUrl.match(/\.(jpg|jpeg|png|gif)$/i) ? (
+                    <img
+                      src={`http://localhost:8080${message.fileUrl}`}
+                      alt="Shared file"
+                      className="max-w-full rounded-lg"
+                    />
+                  ) : (
+                    <a
+                      href={`http://localhost:8080${message.fileUrl}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center space-x-2 text-sm underline"
+                    >
+                      <FaFile className="w-4 h-4" />
+                      <span>
+                        {message.fileName || message.fileUrl.split("/").pop()}
+                      </span>
+                    </a>
+                  )}
+                </div>
+              )}
               <p>{message.content}</p>
               <span className="text-xs opacity-70">
                 {formatTimestamp(message.timestamp)}
