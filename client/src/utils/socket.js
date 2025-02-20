@@ -7,6 +7,7 @@ import toast from "react-hot-toast";
 
 let socket = null;
 let store = null;
+let intentionalDisconnect = false;
 
 export const initializeSocket = (reduxStore) => {
   store = reduxStore;
@@ -24,6 +25,7 @@ export const initializeSocket = (reduxStore) => {
 
     socket.on("connect", () => {
       console.log("Connected to socket server");
+      intentionalDisconnect = false;
 
       // Re-add user to online users if we have the current user
       const state = store.getState();
@@ -35,7 +37,9 @@ export const initializeSocket = (reduxStore) => {
 
     socket.on("connect_error", (error) => {
       console.error("Socket connection error:", error);
-      toast.error("Connection error. Trying to reconnect...");
+      if (!intentionalDisconnect) {
+        toast.error("Connection error. Trying to reconnect...");
+      }
     });
 
     socket.on("receiveMessage", (message) => {
@@ -59,12 +63,16 @@ export const initializeSocket = (reduxStore) => {
 
     socket.on("disconnect", () => {
       console.log("Socket disconnected");
-      toast.error("Disconnected from chat server");
+      if (!intentionalDisconnect) {
+        toast.error("Disconnected from chat server");
+      }
     });
 
     socket.on("reconnect", () => {
       console.log("Socket reconnected");
-      toast.success("Reconnected to chat server");
+      if (!intentionalDisconnect) {
+        toast.success("Reconnected to chat server");
+      }
 
       // Re-add user to online users after reconnection
       const state = store.getState();
@@ -82,6 +90,7 @@ export const getSocket = () => socket;
 
 export const disconnectSocket = () => {
   if (socket) {
+    intentionalDisconnect = true;
     socket.disconnect();
     socket = null;
     store = null;

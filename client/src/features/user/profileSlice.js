@@ -2,9 +2,11 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axios from "axios";
 import Cookies from "js-cookie"; // Import Cookies for handling JWT tokens
 
+// Define API URL
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api";
+
 // Configure axios defaults
-axios.defaults.baseURL =
-  process.env.REACT_APP_API_URL || "http://localhost:8080";
+axios.defaults.baseURL = API_URL;
 axios.interceptors.request.use((config) => {
   const token = Cookies.get("token");
   if (token) {
@@ -12,9 +14,6 @@ axios.interceptors.request.use((config) => {
   }
   return config;
 });
-
-// Define API URL
-const API_URL = "http://localhost:8080/api/profile";
 
 // Helper function to validate token
 const validateToken = () => {
@@ -31,7 +30,7 @@ export const createProfile = createAsyncThunk(
   async (profileData, { rejectWithValue }) => {
     try {
       const token = validateToken();
-      const response = await axios.post(`${API_URL}/create`, profileData, {
+      const response = await axios.post(`/profile/create`, profileData, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -50,14 +49,13 @@ export const fetchProfile = createAsyncThunk(
   "profile/fetchProfile",
   async (_, { rejectWithValue }) => {
     try {
-      const token = Cookies.get("token");
-      const response = await axios.get("/api/profile/me", {
+      const token = validateToken();
+      const response = await axios.get("/profile/me", {
         headers: {
-          Authorization: `Bearer ${token}`, // Fixed template literal syntax
+          Authorization: `Bearer ${token}`,
         },
         withCredentials: true,
       });
-
       return response.data;
     } catch (error) {
       return rejectWithValue(
@@ -72,11 +70,8 @@ export const updateProfile = createAsyncThunk(
   "profile/updateProfile",
   async (profileData, { rejectWithValue }) => {
     try {
-      const token = Cookies.get("token");
-      if (!token) {
-        throw new Error("No token found. Please log in again.");
-      }
-      const response = await axios.put("/api/profile/me", profileData, {
+      const token = validateToken();
+      const response = await axios.put("/profile/me", profileData, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

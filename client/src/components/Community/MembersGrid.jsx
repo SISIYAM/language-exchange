@@ -83,36 +83,6 @@ const MemberCard = ({ member }) => {
   );
 };
 
-// Tabs for different member views
-const Tabs = () => {
-  const [activeTab, setActiveTab] = useState("All members");
-
-  const tabs = [
-    { name: "All members", icon: "🔍" },
-    { name: "Near me", icon: "📍" },
-    { name: "Travel", icon: "✈️" },
-  ];
-
-  return (
-    <div className="flex gap-5 py-7">
-      {tabs.map((tab) => (
-        <button
-          key={tab.name}
-          onClick={() => setActiveTab(tab.name)}
-          className={`flex items-center hover:bg-gray-800 transition-all hover:text-white px-4 py-2 rounded-full ${
-            activeTab === tab.name
-              ? "bg-gray-800 text-white"
-              : "bg-transparent border border-gray-300 text-gray-700"
-          }`}
-        >
-          <span className="mr-2">{tab.icon}</span>
-          {tab.name}
-        </button>
-      ))}
-    </div>
-  );
-};
-
 // Search bar for filtering members
 const SearchBar = ({ onSearch }) => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -146,31 +116,73 @@ const MembersGrid = () => {
   const [filteredMembers, setFilteredMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [activeTab, setActiveTab] = useState("All members");
+  const [currentUserLocation, setCurrentUserLocation] = useState(null);
 
-  // Fetch members from the API
+  // Fetch members and current user's profile
   useEffect(() => {
-    const fetchMembers = async () => {
+    const fetchData = async () => {
       try {
-        const response = await axios.get(`${apiUrl}/profile/all/members`);
-        setMembers(response.data);
-        setFilteredMembers(response.data);
+        const token = Cookies.get("token");
+        // Fetch all members
+        const membersResponse = await axios.get(
+          `${apiUrl}/profile/all/members`
+        );
+        setMembers(membersResponse.data);
+        setFilteredMembers(membersResponse.data);
+
+        // Fetch current user's profile to get their location
+        const userProfileResponse = await axios.get(
+          `${apiUrl}/profile/my/profile`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+            withCredentials: true,
+          }
+        );
+        setCurrentUserLocation(
+          userProfileResponse.data?.location?.toLowerCase()
+        );
       } catch (error) {
-        console.error("Error fetching members:", error);
-        setError("Failed to fetch members. Please try again later.");
+        console.error("Error fetching data:", error);
+        setError("Failed to fetch data. Please try again later.");
       } finally {
         setLoading(false);
       }
     };
 
-    fetchMembers();
+    fetchData();
   }, []);
+
+  // Filter members based on active tab
+  useEffect(() => {
+    if (!members.length || !currentUserLocation) return;
+
+    switch (activeTab) {
+      case "Near me":
+        const nearbyMembers = members.filter(
+          (member) => member.location?.toLowerCase() === currentUserLocation
+        );
+        setFilteredMembers(nearbyMembers);
+        break;
+
+      case "Travel":
+        const travelMembers = members.filter(
+          (member) => member.location?.toLowerCase() !== currentUserLocation
+        );
+        setFilteredMembers(travelMembers);
+        break;
+
+      default: // "All members"
+        setFilteredMembers(members);
+        break;
+    }
+  }, [activeTab, members, currentUserLocation]);
 
   // Handle search
   const handleSearch = async (query) => {
     if (query) {
       try {
         const token = Cookies.get("token");
-        // Fetch search results from the API
         const response = await axios.get(
           `${apiUrl}/partners/search?query=${query}`,
           {
@@ -186,8 +198,51 @@ const MembersGrid = () => {
         setError("Failed to fetch search results. Please try again later.");
       }
     } else {
-      setFilteredMembers(members);
+      // When clearing search, respect the active tab filter
+      if (activeTab === "Near me") {
+        setFilteredMembers(
+          members.filter(
+            (member) => member.location?.toLowerCase() === currentUserLocation
+          )
+        );
+      } else if (activeTab === "Travel") {
+        setFilteredMembers(
+          members.filter(
+            (member) => member.location?.toLowerCase() !== currentUserLocation
+          )
+        );
+      } else {
+        setFilteredMembers(members);
+      }
     }
+  };
+
+  // Tabs component with proper state management
+  const Tabs = () => {
+    const tabs = [
+      { name: "All members", icon: "🔍" },
+      { name: "Near me", icon: "📍" },
+      { name: "Travel", icon: "✈️" },
+    ];
+
+    return (
+      <div className="flex gap-5 py-7">
+        {tabs.map((tab) => (
+          <button
+            key={tab.name}
+            onClick={() => setActiveTab(tab.name)}
+            className={`flex items-center hover:bg-gray-800 transition-all hover:text-white px-4 py-2 rounded-full ${
+              activeTab === tab.name
+                ? "bg-gray-800 text-white"
+                : "bg-transparent border border-gray-300 text-gray-700"
+            }`}
+          >
+            <span className="mr-2">{tab.icon}</span>
+            {tab.name}
+          </button>
+        ))}
+      </div>
+    );
   };
 
   let content;
@@ -196,7 +251,15 @@ const MembersGrid = () => {
   } else if (error) {
     content = <p>{error}</p>;
   } else if (filteredMembers.length === 0) {
-    content = <p>No members found.</p>;
+    content = (
+      <p className="text-center text-gray-500 mt-4">
+        {activeTab === "Near me"
+          ? "No members found in your location."
+          : activeTab === "Travel"
+          ? "No members found from other locations."
+          : "No members found."}
+      </p>
+    );
   } else {
     content = (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

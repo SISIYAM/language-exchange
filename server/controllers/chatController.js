@@ -1,5 +1,6 @@
 const User = require("../models/User");
 const Chat = require("../models/Chat");
+const Profile = require("../models/Profile");
 
 // Get all users for chat (excluding the current user)
 exports.getChatUsers = async (req, res) => {
@@ -23,9 +24,27 @@ exports.searchUsers = async (req, res) => {
       return res.json([]);
     }
 
+    // Get the current user's profile to get following and followers lists
+    const currentUserProfile = await Profile.findOne({ userId: req.user._id });
+    if (!currentUserProfile) {
+      return res.status(404).json({ error: "Profile not found" });
+    }
+
+    // Get the combined list of following and followers
+    const connections = [
+      ...currentUserProfile.following,
+      ...currentUserProfile.followers,
+    ];
+    // Remove duplicates
+    const uniqueConnections = [
+      ...new Set(connections.map((id) => id.toString())),
+    ];
+
+    // Find users who are either following or followers and match the search term
     const users = await User.find({
       $and: [
-        { _id: { $ne: req.user._id } },
+        { _id: { $ne: req.user._id } }, // Exclude current user
+        { _id: { $in: uniqueConnections } }, // Only include connected users
         {
           $or: [
             { name: { $regex: searchTerm, $options: "i" } },

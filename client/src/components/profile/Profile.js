@@ -11,6 +11,28 @@ import {
 import { fetchLoggedInUser, logout } from "@/features/user/userSlice";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
+import axios from "axios";
+
+// Define API URL
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api";
+
+// Configure axios for this component
+const axiosInstance = axios.create({
+  baseURL: API_URL,
+  withCredentials: true,
+});
+
+axiosInstance.interceptors.request.use((config) => {
+  const token = Cookies.get("token");
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// Add the default avatar URL at the top with other constants
+const defaultAvatar =
+  "https://imgs.search.brave.com/m12gFeEaYTH9TW9JHo1E4K4UFZBIAGpFdv-O_jdbty0/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly90My5m/dGNkbi5uZXQvanBn/LzAzLzQ2LzgzLzk2/LzM2MF9GXzM0Njgz/OTY4M182bkFQemJo/cFNrSXBiOHBtQXd1/ZmtDN2M1ZUQ3d1l3/cy5qcGc";
 
 const ProfileForm = () => {
   const dispatch = useDispatch();
@@ -29,6 +51,7 @@ const ProfileForm = () => {
     tandemID: "",
     dateOfBirth: "",
     location: "",
+    description: "",
     about: "",
     partnerPreference: "",
     learningGoals: "",
@@ -67,6 +90,7 @@ const ProfileForm = () => {
   const [following, setFollowing] = useState([]);
   const [followers, setFollowers] = useState([]);
   const [blocked, setBlocked] = useState([]);
+  const [unblockLoading, setUnblockLoading] = useState({});
 
   // Fetch profile and user data on component mount
   useEffect(() => {
@@ -92,6 +116,7 @@ const ProfileForm = () => {
           ? new Date(profile.dateOfBirth).toISOString().split("T")[0]
           : "",
         location: profile.location || "",
+        description: profile.description || "",
         about: profile.about || "",
         partnerPreference: profile.partnerPreference || "",
         learningGoals: profile.learningGoals || "",
@@ -118,38 +143,90 @@ const ProfileForm = () => {
     const fetchFollowData = async () => {
       try {
         const token = Cookies.get("token");
-        if (!token) return;
+        if (!token || !profile) return;
 
-        // Fetch following users details
-        if (profile?.following) {
-          const followingData = Array.isArray(profile.following)
-            ? profile.following
-            : [];
-          setFollowing(followingData);
+        // Get current user's profile with following/followers data
+        const myProfileResponse = await axiosInstance.get("/profile/me");
+        const myProfileData = myProfileResponse.data;
+
+        // Fetch following users
+        if (
+          myProfileData?.following &&
+          Array.isArray(myProfileData.following)
+        ) {
+          const followingPromises = myProfileData.following.map(
+            async (userId) => {
+              try {
+                const response = await axiosInstance.get(`/profile/${userId}`);
+                if (response.data?.profile) {
+                  const profileData = response.data.profile;
+                  return {
+                    userId: profileData.userId,
+                    name: profileData.name,
+                    tandemID: profileData.tandemID,
+                    profilePicture: profileData.profilePicture,
+                    _id: profileData._id,
+                  };
+                }
+                return null;
+              } catch (error) {
+                console.error(
+                  `Error fetching profile for user ${userId}:`,
+                  error
+                );
+                return null;
+              }
+            }
+          );
+
+          const followingProfiles = (
+            await Promise.all(followingPromises)
+          ).filter(Boolean);
+          setFollowing(followingProfiles);
         }
 
-        // Fetch followers
-        const followersResponse = await fetch(
-          "http://localhost:8080/api/profile/followers",
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-            credentials: "include",
+        // Fetch followers directly from the profile's followers array
+        try {
+          console.log("Fetching followers...");
+          const followersResponse = await axiosInstance.get(
+            "/profile/followers"
+          );
+          console.log("Followers response:", followersResponse.data);
+
+          if (Array.isArray(followersResponse.data)) {
+            const validFollowers = followersResponse.data
+              .filter((follower) => follower && follower.userId)
+              .map((follower) => ({
+                userId: follower.userId,
+                name: follower.name || "Anonymous User",
+                tandemID: follower.tandemID || "unknown",
+                profilePicture: follower.profilePicture,
+                _id: follower._id || follower.userId,
+              }));
+            console.log("Setting followers:", validFollowers);
+            setFollowers(validFollowers);
+          } else {
+            console.error(
+              "Invalid followers data received:",
+              followersResponse.data
+            );
+            setFollowers([]);
           }
-        );
-        const followersData = await followersResponse.json();
-        setFollowers(Array.isArray(followersData) ? followersData : []);
+        } catch (error) {
+          console.error(
+            "Error fetching followers:",
+            error.response?.data || error
+          );
+          setFollowers([]);
+        }
 
         // Fetch blocked users
-        if (profile?.blocked) {
-          const blockedData = Array.isArray(profile.blocked)
-            ? profile.blocked
-            : [];
-          setBlocked(blockedData);
-        }
+        await fetchBlockedUsers();
       } catch (error) {
         console.error("Error fetching follow data:", error);
+        const errorMessage =
+          error.response?.data?.message || "Failed to fetch user relationships";
+        toast.error(errorMessage);
         setFollowing([]);
         setFollowers([]);
         setBlocked([]);
@@ -160,6 +237,48 @@ const ProfileForm = () => {
       fetchFollowData();
     }
   }, [profile]);
+
+  // Add the fetchBlockedUsers function
+  const fetchBlockedUsers = async () => {
+    try {
+      const response = await axiosInstance.get("/profile/blocked");
+      if (Array.isArray(response.data)) {
+        const validBlockedUsers = response.data
+          .filter((user) => user && user.userId)
+          .map((user) => ({
+            userId: user.userId,
+            name: user.name || "Anonymous User",
+            tandemID: user.tandemID || "unknown",
+            profilePicture: user.profilePicture,
+            _id: user._id || user.userId,
+          }));
+        setBlocked(validBlockedUsers);
+      } else {
+        setBlocked([]);
+      }
+    } catch (error) {
+      console.error("Error fetching blocked users:", error);
+      toast.error("Failed to fetch blocked users");
+      setBlocked([]);
+    }
+  };
+
+  const handleUnblock = async (userId) => {
+    setUnblockLoading((prev) => ({ ...prev, [userId]: true }));
+    try {
+      await axiosInstance.post(`/profile/unblock/${userId}`);
+      toast.success("User unblocked successfully");
+      // Refresh the blocked users list
+      await fetchBlockedUsers();
+      // Also refresh the profile data to ensure all lists are up to date
+      await dispatch(fetchProfile()).unwrap();
+    } catch (error) {
+      console.error("Error unblocking user:", error);
+      toast.error("Failed to unblock user");
+    } finally {
+      setUnblockLoading((prev) => ({ ...prev, [userId]: false }));
+    }
+  };
 
   const menuItems = [
     { label: "About me" },
@@ -365,6 +484,14 @@ const ProfileForm = () => {
                 onChange={(e) => handleInputChange("location", e.target.value)}
                 required
               />
+              <TextAreaField
+                label="Description"
+                value={formData.description}
+                onChange={(e) =>
+                  handleInputChange("description", e.target.value)
+                }
+                placeholder="Describe yourself"
+              />
             </div>
 
             <div className="space-y-6 mt-8">
@@ -394,32 +521,36 @@ const ProfileForm = () => {
               <div className="grid grid-cols-5 gap-4">
                 {formData.photos &&
                   formData.photos.map((photo, index) => (
-                    <div key={index} className="relative">
-                      <img
-                        src={`http://localhost:8080${photo}`}
-                        alt={`Photo ${index + 1}`}
-                        className="w-full h-24 object-cover rounded-lg"
-                      />
-                      <button
-                        onClick={() => handleDeletePhoto(index)}
-                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600"
-                      >
-                        ×
-                      </button>
+                    <div key={index} className="relative aspect-square">
+                      <div className="absolute inset-0 rounded-lg overflow-hidden">
+                        <img
+                          src={`http://localhost:8080${photo}`}
+                          alt={`Photo ${index + 1}`}
+                          className="w-full h-full object-contain bg-gray-100"
+                        />
+                        <button
+                          onClick={() => handleDeletePhoto(index)}
+                          className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600"
+                        >
+                          ×
+                        </button>
+                      </div>
                     </div>
                   ))}
                 {(!formData.photos || formData.photos.length < 5) && (
-                  <label className="border-2 border-dashed border-gray-300 rounded-lg h-24 flex items-center justify-center cursor-pointer hover:border-blue-500">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={handlePhotoUpload}
-                      multiple={true}
-                      disabled={isLoading}
-                    />
-                    <span className="text-gray-400 text-xl">+</span>
-                  </label>
+                  <div className="aspect-square relative">
+                    <label className="absolute inset-0 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center cursor-pointer hover:border-blue-500">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handlePhotoUpload}
+                        multiple={true}
+                        disabled={isLoading}
+                      />
+                      <span className="text-gray-400 text-xl">+</span>
+                    </label>
+                  </div>
                 )}
               </div>
             </div>
@@ -892,23 +1023,28 @@ const ProfileForm = () => {
     return (
       <div className="space-y-4">
         {users.map((user) => {
-          // Ensure we have valid user data
           if (!user) return null;
+
+          // Get profile picture URL, checking if it's a full URL or a relative path
+          const profilePicture = user.profilePicture
+            ? user.profilePicture.startsWith("http")
+              ? user.profilePicture
+              : `http://localhost:8080${user.profilePicture}`
+            : defaultAvatar;
 
           return (
             <div
-              key={user._id}
+              key={user.userId || user._id}
               className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
             >
               <div className="flex items-center space-x-3">
                 <img
-                  src={
-                    user.profilePicture
-                      ? `http://localhost:8080${user.profilePicture}`
-                      : "/default-avatar.png"
-                  }
+                  src={profilePicture}
                   alt={user.name || "User"}
                   className="w-10 h-10 rounded-full object-cover"
+                  onError={(e) => {
+                    e.target.src = defaultAvatar;
+                  }}
                 />
                 <div>
                   <h3 className="font-medium">
@@ -919,12 +1055,24 @@ const ProfileForm = () => {
                   </p>
                 </div>
               </div>
-              <button
-                onClick={() => router.push(`/community/${user._id}`)}
-                className="text-blue-500 hover:text-blue-700"
-              >
-                View Profile
-              </button>
+              {formData.followingTab === "Blocked" ? (
+                <button
+                  onClick={() => handleUnblock(user.userId)}
+                  disabled={unblockLoading[user.userId]}
+                  className="bg-red-500 text-white px-4 py-2 rounded-full hover:bg-red-600 disabled:opacity-50"
+                >
+                  {unblockLoading[user.userId] ? "Loading..." : "Unblock"}
+                </button>
+              ) : (
+                <button
+                  onClick={() =>
+                    router.push(`/community/${user.userId || user._id}`)
+                  }
+                  className="text-blue-500 hover:text-blue-700"
+                >
+                  View Profile
+                </button>
+              )}
             </div>
           );
         })}
@@ -1017,13 +1165,14 @@ const LanguageFormSection = ({ title, value, onChange }) => (
   <div className="border-b py-4">
     <h3 className="font-semibold text-lg mb-4">{title}</h3>
     <select
-      value={value}
+      value={value || ""}
       onChange={onChange}
       className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
     >
-      <option>English (English)</option>
-      <option>French (Français)</option>
-      <option>Chinese (Traditional) (中文 (繁體))</option>
+      <option value="">Select a language</option>
+      <option value="English">English (English)</option>
+      <option value="French">French (Français)</option>
+      <option value="Chinese">Chinese (Traditional) (中文 (繁體))</option>
     </select>
   </div>
 );
