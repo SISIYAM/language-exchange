@@ -9,6 +9,8 @@ import {
 import MessageInput from "./MessageInput";
 import { FaPhone, FaVideo } from "react-icons/fa";
 
+const appDomain = process.env.NEXT_PUBLIC_DOMAIN || "http://localhost:3000";
+
 const defaultAvatar =
   "https://imgs.search.brave.com/m12gFeEaYTH9TW9JHo1E4K4UFZBIAGpFdv-O_jdbty0/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly90My5m/dGNkbi5uZXQvanBn/LzAzLzQ2LzgzLzk2/LzM2MF9GXzM0Njgz/OTY4M182bkFQemJo/cFNrSXBiOHBtQXd1/ZmtDN2M1ZUQ3d1l3/cy5qcGc";
 
@@ -75,11 +77,11 @@ const ChatWindow = () => {
     const receiverID = selectedUser._id.toString();
     const receiverName = selectedUser.name;
     const userName = currentUser.name;
-    const callLink = `http://localhost:3000/call?roomID=${roomID}&userID=${userID}&userName=${encodeURIComponent(
+    const callLink = `${appDomain}/call?roomID=${roomID}&userID=${userID}&userName=${encodeURIComponent(
       userName
     )}&isVideoCall=${isVideo}`;
 
-    const ReceiverCallLink = `http://localhost:3000/call?roomID=${roomID}&userID=${receiverID}&userName=${encodeURIComponent(
+    const ReceiverCallLink = `${appDomain}/call?roomID=${roomID}&userID=${receiverID}&userName=${encodeURIComponent(
       receiverName
     )}&isVideoCall=${isVideo}`;
 
