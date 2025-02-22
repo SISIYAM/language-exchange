@@ -8,6 +8,7 @@ import {
 } from "@/features/user/chatSlice"; // Import sendMessage action
 import MessageInput from "./MessageInput";
 import { FaPhone, FaVideo } from "react-icons/fa";
+import { getSocket } from "@/utils/socket";
 
 const appDomain = process.env.NEXT_PUBLIC_DOMAIN || "http://localhost:3000";
 
@@ -69,7 +70,7 @@ const ChatWindow = () => {
     }
   };
 
-  const startCall = (isVideo) => {
+  const startCall = async (isVideo) => {
     if (!currentUser || !selectedUser) return;
 
     const roomID = [currentUser._id, selectedUser._id].sort().join("-");
@@ -96,15 +97,27 @@ const ChatWindow = () => {
     </div>
   `;
 
-    dispatch(
-      createNewMessage({
-        senderId: currentUser._id,
-        receiverId: selectedUser._id,
-        content: callMessage, // Save HTML content
-        type: "call",
-        timestamp: new Date().toISOString(),
-      })
-    );
+    // Get socket instance
+    const socket = getSocket();
+    if (!socket) {
+      console.error("Socket not initialized");
+      return;
+    }
+
+    // Create message object
+    const messageData = {
+      senderId: currentUser._id,
+      receiverId: selectedUser._id,
+      content: callMessage,
+      type: "call",
+      timestamp: new Date().toISOString(),
+    };
+
+    // Emit the message through socket
+    socket.emit("sendMessage", messageData);
+
+    // Also dispatch to local state
+    dispatch(createNewMessage(messageData));
 
     // Redirect to the call page
     router.push(callLink);
