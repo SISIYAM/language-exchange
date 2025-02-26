@@ -1,124 +1,208 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import BlogCard from "./BlogCard";
 import { useRouter } from "next/navigation";
-import { useSelector } from "react-redux";
 import axios from "axios";
 import { toast } from "react-hot-toast";
+import { fetchNewsForCategory, fetchAllNews } from "@/services/newsService";
+
+const CATEGORIES = [
+  "All",
+  "Environment Protection",
+  "Green Initiatives",
+  "Language and Culture",
+  "Healthy Living",
+  "Science & Technology",
+  "Community Stories",
+  "Global Awareness",
+];
+
+// Enhanced keywords mapping for better article classification
+const CATEGORY_KEYWORDS = {
+  "Environment Protection": [
+    "environment",
+    "climate",
+    "pollution",
+    "conservation",
+    "ecosystem",
+    "biodiversity",
+    "wildlife",
+    "environmental policy",
+    "clean air",
+    "clean water",
+  ],
+  "Green Initiatives": [
+    "renewable",
+    "sustainable",
+    "green",
+    "eco-friendly",
+    "recycling",
+    "solar power",
+    "wind energy",
+    "zero waste",
+  ],
+  "Language and Culture": [
+    "language",
+    "culture",
+    "linguistics",
+    "heritage",
+    "traditions",
+    "diversity",
+    "cultural exchange",
+    "multilingual",
+  ],
+  "Healthy Living": [
+    "health",
+    "wellness",
+    "fitness",
+    "nutrition",
+    "mental health",
+    "exercise",
+    "diet",
+    "lifestyle",
+  ],
+  "Science & Technology": [
+    "technology",
+    "science",
+    "innovation",
+    "research",
+    "digital",
+    "AI",
+    "robotics",
+    "space",
+  ],
+  "Community Stories": [
+    "community",
+    "local",
+    "neighborhood",
+    "social impact",
+    "grassroots",
+    "volunteering",
+    "civic",
+  ],
+  "Global Awareness": [
+    "global",
+    "international",
+    "world issues",
+    "cross-cultural",
+    "global citizenship",
+    "cultural awareness",
+  ],
+};
 
 const BlogSection = () => {
+  const [selectedCategory, setSelectedCategory] = useState("All");
   const [articles, setArticles] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [limit, setLimit] = useState(10); // Initial limit to load 10 articles at a time
-  const [subscriptionStatus, setSubscriptionStatus] = useState("free");
+  const [hasMore, setHasMore] = useState(true);
   const router = useRouter();
-  const { currentUser } = useSelector((state) => state.user);
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-
-  // Fetch subscription status
   useEffect(() => {
-    const fetchSubscriptionStatus = async () => {
-      if (!currentUser?._id) return;
-      try {
-        const response = await axios.get(`${apiUrl}/subscription/status`, {
-          withCredentials: true,
-        });
-        setSubscriptionStatus(response.data.status);
-      } catch (error) {
-        console.error("Error fetching subscription status:", error);
-      }
-    };
+    fetchArticles(1);
+  }, [selectedCategory]);
 
-    fetchSubscriptionStatus();
-  }, [currentUser]);
-
-  // Function to fetch articles
   const fetchArticles = async (page = 1) => {
-    setLoading(true);
     try {
-      const response = await fetch(
-        `${apiUrl}/news?page=${page}&limit=${limit}`
-      );
-      const data = await response.json();
-      if (data.success) {
-        // Mark random articles as premium (for demonstration)
-        const articlesWithPremium = data.articles.map((article) => ({
-          ...article,
-          isPremium: Math.random() < 0.3, // 30% chance of being premium
-        }));
-        setArticles((prevArticles) => [
-          ...prevArticles,
-          ...articlesWithPremium,
-        ]);
-        setTotalPages(Math.ceil(data.articles.length / limit));
+      setLoading(true);
+      let fetchedArticles;
+
+      if (selectedCategory === "All") {
+        fetchedArticles = await fetchAllNews();
+      } else {
+        fetchedArticles = await fetchNewsForCategory(selectedCategory);
       }
-      setLoading(false);
+
+      // Process and set articles
+      const processedArticles = combineContent(fetchedArticles);
+
+      if (page === 1) {
+        setArticles(processedArticles);
+      } else {
+        setArticles((prev) => [...prev, ...processedArticles]);
+      }
+
+      setHasMore(processedArticles.length > 0);
+      setCurrentPage(page);
     } catch (error) {
       console.error("Error fetching articles:", error);
+      toast.error("Failed to fetch articles");
+    } finally {
       setLoading(false);
     }
   };
 
-  // Fetch articles when the component mounts and on subsequent "See More" clicks
-  useEffect(() => {
-    fetchArticles(currentPage);
-  }, [currentPage]);
-
-  // Function to handle the "See More" button click
-  const handleSeeMore = () => {
-    setCurrentPage(currentPage + 1); // Load the next set of articles
+  const combineContent = (apiArticles) => {
+    return apiArticles.map((article) => ({
+      ...article,
+      category: article.category || "Uncategorized",
+    }));
   };
 
-  // Function to handle article click and redirect to the article's URL
+  const handleSeeMore = () => {
+    const nextPage = currentPage + 1;
+    fetchArticles(nextPage);
+  };
+
   const handleArticleClick = (article) => {
-    if (article.isPremium && subscriptionStatus !== "premium") {
-      toast.error("This content is only available to premium users");
-      // Optional: Redirect to subscription page
-      router.push("/subscription");
-      return;
-    }
-    window.open(article.url, "_blank"); // Open the URL in a new tab
+    router.push(`/blog/${article.id}`);
   };
 
   return (
-    <div className="container max-w-5xl mx-auto px-4 py-8">
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {articles.map((article, index) => (
-          <div
-            key={index}
-            onClick={() => handleArticleClick(article)}
-            className="cursor-pointer relative"
+    <div className="container mx-auto px-4 py-8">
+      {/* Category Tabs */}
+      <div className="flex flex-wrap gap-4 mb-8">
+        {CATEGORIES.map((category) => (
+          <button
+            key={category}
+            onClick={() => setSelectedCategory(category)}
+            className={`px-4 py-2 rounded-full transition-colors duration-300 ${
+              selectedCategory === category
+                ? "bg-blue-500 text-white"
+                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+            }`}
           >
-            <BlogCard
-              category={article.source} // Use source as category
-              title={article.title}
-              description={article.description}
-              readTime="5 min" // Placeholder for read time
-              image={article.image} // Use the image from the API response
-              isPremium={article.isPremium}
-              isUserPremium={subscriptionStatus === "premium"}
-            />
-          </div>
+            {category}
+          </button>
         ))}
       </div>
 
-      <div className="flex justify-center mt-8">
-        {loading ? (
-          <p>Loading more articles...</p>
-        ) : (
-          currentPage < totalPages && (
-            <button
-              onClick={handleSeeMore}
-              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-            >
-              See More
-            </button>
-          )
-        )}
-      </div>
+      {/* Articles Grid */}
+      {loading && articles.length === 0 ? (
+        <div className="text-center py-8">Loading...</div>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {articles.map((article, index) => (
+              <div
+                key={index}
+                onClick={() => handleArticleClick(article)}
+                className="cursor-pointer"
+              >
+                <BlogCard
+                  category={article.category}
+                  title={article.title}
+                  description={article.description}
+                  image={article.image}
+                />
+              </div>
+            ))}
+          </div>
+
+          {/* Load More Button */}
+          {hasMore && (
+            <div className="text-center mt-8">
+              <button
+                onClick={handleSeeMore}
+                className="bg-blue-500 text-white px-6 py-2 rounded-full hover:bg-blue-600 transition-colors duration-300"
+                disabled={loading}
+              >
+                {loading ? "Loading..." : "Load More"}
+              </button>
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 };

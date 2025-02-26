@@ -14,6 +14,7 @@ const subscriptionRoutes = require("./routes/subscription");
 const chatRoutes = require("./routes/chatRoutes");
 const http = require("http");
 const { Server } = require("socket.io");
+const { scheduleEmails } = require("./services/emailService");
 
 dotenv.config();
 const app = express();
@@ -134,8 +135,15 @@ app.use("/api/chat", chatRoutes);
 // Database Connection
 mongoose
   .connect(process.env.MONGO_URI)
-  .then(() => console.log("MongoDB Connected"))
-  .catch((err) => console.log(err));
+  .then(() => {
+    console.log("MongoDB Connected");
 
-const PORT = process.env.PORT;
-server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+    // Start the email service
+    scheduleEmails();
+    console.log("Email service started");
+
+    // Start the server
+    const PORT = process.env.PORT;
+    server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+  })
+  .catch((err) => console.log(err));

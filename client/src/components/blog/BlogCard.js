@@ -1,5 +1,4 @@
 import React from "react";
-import { FaCrown } from "react-icons/fa";
 
 // Function to calculate reading time based on word count
 const calculateReadTime = (description) => {
@@ -9,38 +8,9 @@ const calculateReadTime = (description) => {
   return `${minutes}-min read`;
 };
 
-const BlogCard = ({
-  category,
-  title,
-  description,
-  image,
-  readTime,
-  isPremium,
-  isUserPremium,
-}) => {
+const BlogCard = ({ category, title, description, image, readTime }) => {
   return (
     <div className="relative bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
-      {/* Premium Badge */}
-      {isPremium && (
-        <div className="absolute top-2 right-2 z-10 bg-yellow-400 text-black px-2 py-1 rounded-full flex items-center gap-1">
-          <FaCrown className="text-sm" />
-          <span className="text-xs font-semibold">Premium</span>
-        </div>
-      )}
-
-      {/* Premium Overlay for non-premium users */}
-      {isPremium && !isUserPremium && (
-        <div className="absolute inset-0 bg-black bg-opacity-50 flex flex-col items-center justify-center z-20 p-4">
-          <FaCrown className="text-yellow-400 text-4xl mb-2" />
-          <p className="text-white text-center font-semibold mb-1">
-            Premium Content
-          </p>
-          <p className="text-white text-center text-sm">
-            Subscribe to access this article
-          </p>
-        </div>
-      )}
-
       <div className="relative h-48">
         <img
           src={image || "/placeholder-image.jpg"}
