@@ -26,11 +26,11 @@ const Conversation = () => {
   const zegoRef = useRef(null);
 
   useEffect(() => {
-    if (currentUser?.id && selectedUser?.id) {
+    if (currentUser?._id && selectedUser?._id) {
       dispatch(
         fetchConversationHistory({
-          userId1: currentUser.id,
-          userId2: selectedUser.id,
+          userId1: currentUser._id,
+          userId2: selectedUser._id,
         })
       );
       initializeZegoCloud();
@@ -39,8 +39,8 @@ const Conversation = () => {
 
   const initializeZegoCloud = async () => {
     try {
-      const roomID = [currentUser.id, selectedUser.id].sort().join("-");
-      const userID = currentUser.id.toString();
+      const roomID = [currentUser._id, selectedUser._id].sort().join("-");
+      const userID = currentUser._id.toString();
       const userName = currentUser.name;
 
       const kitToken = ZegoUIKitPrebuilt.generateKitTokenForTest(
@@ -95,11 +95,16 @@ const Conversation = () => {
 
     try {
       await zegoRef.current.joinRoom({
-        container: document.getElementById("zego-video-container"),
+        container: document.getElementById("zego-call-container"),
         scenario: {
           mode: ZegoUIKitPrebuilt.OneONoneCall,
           config: {
             video: false,
+            audio: true,
+            showPreJoinView: true,
+            showScreenSharingButton: false,
+            showAudioVideoSettingsButton: false,
+            showTextChat: false,
           },
         },
         showPreJoinView: false,
@@ -226,6 +231,14 @@ const Conversation = () => {
       {isCalling && (
         <div
           id="zego-video-container"
+          className="fixed inset-0 bg-black z-50"
+        ></div>
+      )}
+
+      {/* Call Container */}
+      {isCalling && (
+        <div
+          id="zego-call-container"
           className="fixed inset-0 bg-black z-50"
         ></div>
       )}
