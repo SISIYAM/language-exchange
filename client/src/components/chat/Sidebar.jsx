@@ -127,13 +127,8 @@ const Sidebar = () => {
 
   // Get profile picture with proper error handling
   const getProfilePicture = useCallback((user) => {
-    if (!user?.profilePicture) return defaultAvatar;
     try {
-      return user.profilePicture.startsWith("http")
-        ? user.profilePicture
-        : `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"}${
-            user.profilePicture
-          }`;
+      return `${process.env.NEXT_PUBLIC_BASE_URL}${user.profilePicture}`;
     } catch (error) {
       console.error("Error getting profile picture:", error);
       return defaultAvatar;
@@ -312,7 +307,11 @@ const Sidebar = () => {
               >
                 <div className="relative w-12 h-12">
                   <img
-                    src={getProfilePicture(otherUser)}
+                    src={
+                      otherUser.profilePicture
+                        ? `${process.env.NEXT_PUBLIC_BASE_URL}${otherUser.profilePicture}`
+                        : defaultAvatar
+                    }
                     alt={otherUser.name}
                     className="rounded-full w-full h-full object-cover shadow-lg"
                     onError={(e) => {

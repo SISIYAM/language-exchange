@@ -15,6 +15,7 @@ const chatRoutes = require("./routes/chatRoutes");
 const http = require("http");
 const { Server } = require("socket.io");
 const { scheduleEmails } = require("./services/emailService");
+const learningRoutes = require("./routes/learningRoutes");
 
 dotenv.config();
 const app = express();
@@ -131,6 +132,18 @@ app.use("/api/partners", partnerRoutes);
 app.use("/api/news", newsRoutes);
 app.use("/api/subscription", subscriptionRoutes);
 app.use("/api/chat", chatRoutes);
+app.use("/api/learning", learningRoutes);
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ error: "Something went wrong!" });
+});
+
+// Handle 404 routes
+app.use((req, res) => {
+  res.status(404).json({ error: "Route not found" });
+});
 
 // Database Connection
 mongoose

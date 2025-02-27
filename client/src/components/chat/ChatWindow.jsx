@@ -49,7 +49,7 @@ const ChatWindow = () => {
     try {
       return user.profilePicture.startsWith("http")
         ? user.profilePicture
-        : `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"}${
+        : `${process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:8080"}${
             user.profilePicture
           }`;
     } catch (error) {
