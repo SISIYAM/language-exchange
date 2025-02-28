@@ -6,6 +6,7 @@ const axios = require("axios");
 const FormData = require("form-data");
 const fs = require("fs");
 const path = require("path");
+const { tranlate } = require("../controllers/learningController");
 
 // Configure multer for handling audio files
 const storage = multer.memoryStorage();
@@ -159,30 +160,32 @@ router.post(
 );
 
 // Grammar check endpoint
-router.post(
-  "/check-grammar",
-  asyncHandler(async (req, res) => {
-    const { text, language } = req.body;
+router.post("/check-grammar", async (req, res) => {
+  const { text, language } = req.body;
 
-    if (!text) {
-      return res.status(400).json({ error: "Text is required" });
-    }
+  if (!text || !language) {
+    return res.status(400).json({ error: "Text and language are required" });
+  }
 
-    const formData = new FormData();
-    formData.append("text", text);
-    formData.append("language", language);
-
+  try {
+    // 🌍 LanguageTool API Request
     const response = await axios.post(
       "https://api.languagetool.org/v2/check",
-      formData,
       {
-        headers: formData.getHeaders(),
+        text: text,
+        language: language,
+      },
+      {
+        headers: { "Content-Type": "application/json" },
       }
     );
 
     res.json(response.data);
-  })
-);
+  } catch (error) {
+    console.error("Error checking grammar:", error.message);
+    res.status(500).json({ error: "Grammar check failed" });
+  }
+});
 
 // Helper function to calculate text similarity
 function calculateSimilarity(str1, str2) {
@@ -215,5 +218,7 @@ function calculateSimilarity(str1, str2) {
 
   return (longer.length - costs[shorter.length]) / parseFloat(longer.length);
 }
+
+router.post("/translate", tranlate);
 
 module.exports = router;

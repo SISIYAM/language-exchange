@@ -9,22 +9,10 @@ const LearningPage = () => {
 
   const tabs = [
     {
-      id: "pronunciation",
-      label: "Pronunciation Practice",
-      description:
-        "Practice your pronunciation with AI feedback using Mozilla DeepSpeech.",
-    },
-    {
       id: "conversation",
       label: "Practice Conversations",
       description:
         "Have real conversations with AI tutors in different languages.",
-    },
-    {
-      id: "grammar",
-      label: "Grammar & Writing",
-      description:
-        "Get instant feedback on your writing with advanced grammar checking.",
     },
   ];
 
@@ -58,9 +46,9 @@ const LearningPage = () => {
       </div>
 
       <div className="bg-gray-50 rounded-lg p-6">
-        {activeTab === "pronunciation" && <SpeechRecognition />}
+        {/* {activeTab === "pronunciation" && <SpeechRecognition />} */}
         {activeTab === "conversation" && <AIChatbot />}
-        {activeTab === "grammar" && <GrammarCorrection />}
+        {/* {activeTab === "grammar" && <GrammarCorrection />} */}
       </div>
     </div>
   );

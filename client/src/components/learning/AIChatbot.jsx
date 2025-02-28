@@ -1,23 +1,105 @@
-"use client";
 import React, { useState, useRef, useEffect } from "react";
-import { FaMicrophone, FaStop, FaPaperPlane } from "react-icons/fa";
+import { FaPaperPlane } from "react-icons/fa";
 
 const AIChatbot = () => {
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState("");
-  const [isRecording, setIsRecording] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState("english");
   const [selectedTopic, setSelectedTopic] = useState("general");
-  const mediaRecorderRef = useRef(null);
-  const audioChunksRef = useRef([]);
+  const [translationLanguage, setTranslationLanguage] = useState("english");
   const chatContainerRef = useRef(null);
 
   const languages = [
-    { value: "english", label: "English" },
-    { value: "spanish", label: "Spanish" },
-    { value: "french", label: "French" },
-    { value: "german", label: "German" },
-    { value: "italian", label: "Italian" },
+    { value: "en", label: "English" },
+    { value: "es", label: "Spanish" },
+    { value: "fr", label: "French" },
+    { value: "de", label: "German" },
+    { value: "it", label: "Italian" },
+    { value: "bn", label: "Bengali" },
+    { value: "zh", label: "Chinese" },
+    { value: "hi", label: "Hindi" },
+    { value: "ar", label: "Arabic" },
+    { value: "pt", label: "Portuguese" },
+    { value: "ru", label: "Russian" },
+    { value: "ja", label: "Japanese" },
+    { value: "ko", label: "Korean" },
+    { value: "nl", label: "Dutch" },
+    { value: "tr", label: "Turkish" },
+    { value: "pl", label: "Polish" },
+    { value: "vi", label: "Vietnamese" },
+    { value: "th", label: "Thai" },
+    { value: "uk", label: "Ukrainian" },
+    { value: "el", label: "Greek" },
+    { value: "cs", label: "Czech" },
+    { value: "sv", label: "Swedish" },
+    { value: "da", label: "Danish" },
+    { value: "fi", label: "Finnish" },
+    { value: "no", label: "Norwegian" },
+    { value: "hu", label: "Hungarian" },
+    { value: "ro", label: "Romanian" },
+    { value: "id", label: "Indonesian" },
+    { value: "ms", label: "Malay" },
+    { value: "ta", label: "Tamil" },
+    { value: "te", label: "Telugu" },
+    { value: "ur", label: "Urdu" },
+    { value: "fa", label: "Persian" },
+    { value: "sw", label: "Swahili" },
+    { value: "zu", label: "Zulu" },
+    { value: "xh", label: "Xhosa" },
+    { value: "af", label: "Afrikaans" },
+    { value: "sq", label: "Albanian" },
+    { value: "hy", label: "Armenian" },
+    { value: "az", label: "Azerbaijani" },
+    { value: "eu", label: "Basque" },
+    { value: "be", label: "Belarusian" },
+    { value: "bg", label: "Bulgarian" },
+    { value: "ca", label: "Catalan" },
+    { value: "hr", label: "Croatian" },
+    { value: "et", label: "Estonian" },
+    { value: "tl", label: "Filipino" },
+    { value: "gl", label: "Galician" },
+    { value: "ka", label: "Georgian" },
+    { value: "gu", label: "Gujarati" },
+    { value: "ht", label: "Haitian Creole" },
+    { value: "ha", label: "Hausa" },
+    { value: "iw", label: "Hebrew" },
+    { value: "is", label: "Icelandic" },
+    { value: "ga", label: "Irish" },
+    { value: "jw", label: "Javanese" },
+    { value: "kn", label: "Kannada" },
+    { value: "kk", label: "Kazakh" },
+    { value: "km", label: "Khmer" },
+    { value: "lo", label: "Lao" },
+    { value: "la", label: "Latin" },
+    { value: "lv", label: "Latvian" },
+    { value: "lt", label: "Lithuanian" },
+    { value: "mk", label: "Macedonian" },
+    { value: "mg", label: "Malagasy" },
+    { value: "ml", label: "Malayalam" },
+    { value: "mt", label: "Maltese" },
+    { value: "mi", label: "Maori" },
+    { value: "mr", label: "Marathi" },
+    { value: "mn", label: "Mongolian" },
+    { value: "ne", label: "Nepali" },
+    { value: "ps", label: "Pashto" },
+    { value: "pa", label: "Punjabi" },
+    { value: "sm", label: "Samoan" },
+    { value: "gd", label: "Scottish Gaelic" },
+    { value: "sr", label: "Serbian" },
+    { value: "st", label: "Sesotho" },
+    { value: "sn", label: "Shona" },
+    { value: "sd", label: "Sindhi" },
+    { value: "si", label: "Sinhala" },
+    { value: "sk", label: "Slovak" },
+    { value: "sl", label: "Slovenian" },
+    { value: "so", label: "Somali" },
+    { value: "su", label: "Sundanese" },
+    { value: "tg", label: "Tajik" },
+    { value: "tt", label: "Tatar" },
+    { value: "cy", label: "Welsh" },
+    { value: "yi", label: "Yiddish" },
+    { value: "yo", label: "Yoruba" },
+    { value: "zu", label: "Zulu" },
   ];
 
   const topics = [
@@ -35,67 +117,32 @@ const AIChatbot = () => {
     }
   }, [messages]);
 
-  const startRecording = async () => {
+  const translateText = async (text, sourceLanguage, targetLanguage) => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaRecorderRef.current = new MediaRecorder(stream);
-      audioChunksRef.current = [];
-
-      mediaRecorderRef.current.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/learning/translate`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            text,
+            sourceLanguage,
+            targetLanguage,
+          }),
         }
-      };
-
-      mediaRecorderRef.current.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, {
-          type: "audio/wav",
-        });
-        await processAudioToText(audioBlob);
-      };
-
-      mediaRecorderRef.current.start();
-      setIsRecording(true);
-    } catch (error) {
-      console.error("Error accessing microphone:", error);
-    }
-  };
-
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-    }
-  };
-
-  const processAudioToText = async (audioBlob) => {
-    try {
-      const formData = new FormData();
-      formData.append("audio", audioBlob);
-      formData.append("language", selectedLanguage);
-
-      const response = await fetch("/api/learning/speech-to-text", {
-        method: "POST",
-        body: formData,
-      });
+      );
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(
-          errorData.error || `HTTP error! status: ${response.status}`
-        );
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
-      if (data.error) {
-        throw new Error(data.error);
-      }
-      if (data.text) {
-        setInputText(data.text);
-      }
+      return data.translatedText;
     } catch (error) {
-      console.error("Error processing audio:", error);
-      setInputText("");
+      console.error("Error translating text:", error);
+      return text; // Return original text if translation fails
     }
   };
 
@@ -112,34 +159,20 @@ const AIChatbot = () => {
     setInputText("");
 
     try {
-      const response = await fetch("/api/learning/chat", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          message: inputText,
-          language: selectedLanguage,
-          topic: selectedTopic,
-        }),
-      });
+      // Translate the user's message to the selected translation language
+      const translatedUserMessage = await translateText(
+        inputText,
+        selectedLanguage,
+        translationLanguage
+      );
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(
-          errorData.error || `HTTP error! status: ${response.status}`
-        );
-      }
-
-      const data = await response.json();
-      if (data.error) {
-        throw new Error(data.error);
-      }
+      // Simulate a bot response (you can replace this with an actual API call)
+      const botResponse = `Translated: ${translatedUserMessage}`;
 
       setMessages((prev) => [
         ...prev,
         {
-          text: data.response,
+          text: botResponse,
           sender: "bot",
           timestamp: new Date().toISOString(),
         },
@@ -197,6 +230,25 @@ const AIChatbot = () => {
         </div>
       </div>
 
+      {/* Translation Language Selector */}
+      <div className="mb-4">
+        <label className="block text-gray-700 text-sm font-bold mb-2">
+          Translate to:
+        </label>
+        <select
+          className="w-full p-2 border rounded"
+          value={translationLanguage}
+          onChange={(e) => setTranslationLanguage(e.target.value)}
+        >
+          {languages.map((lang) => (
+            <option key={lang.value} value={lang.value}>
+              {lang.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Chat Messages */}
       <div
         ref={chatContainerRef}
         className="h-96 overflow-y-auto mb-4 p-4 border rounded"
@@ -224,16 +276,8 @@ const AIChatbot = () => {
         ))}
       </div>
 
+      {/* Input Area */}
       <div className="flex space-x-2">
-        <button
-          onClick={isRecording ? stopRecording : startRecording}
-          className={`p-2 rounded ${
-            isRecording ? "bg-red-500" : "bg-blue-500"
-          } text-white`}
-        >
-          {isRecording ? <FaStop /> : <FaMicrophone />}
-        </button>
-
         <input
           type="text"
           className="flex-1 p-2 border rounded"
