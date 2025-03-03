@@ -9,7 +9,19 @@ const LearningPage = () => {
 
   const tabs = [
     {
+      id: "pronunciation",
+      label: "Practice Conversations",
+      description:
+        "Have real conversations with AI tutors in different languages.",
+    },
+    {
       id: "conversation",
+      label: "Practice Conversations",
+      description:
+        "Have real conversations with AI tutors in different languages.",
+    },
+    {
+      id: "grammar",
       label: "Practice Conversations",
       description:
         "Have real conversations with AI tutors in different languages.",
@@ -46,9 +58,9 @@ const LearningPage = () => {
       </div>
 
       <div className="bg-gray-50 rounded-lg p-6">
-        {/* {activeTab === "pronunciation" && <SpeechRecognition />} */}
+        {activeTab === "pronunciation" && <SpeechRecognition />}
         {activeTab === "conversation" && <AIChatbot />}
-        {/* {activeTab === "grammar" && <GrammarCorrection />} */}
+        {activeTab === "grammar" && <GrammarCorrection />}
       </div>
     </div>
   );
