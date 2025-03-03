@@ -1,6 +1,6 @@
 "use client";
 import Sidebar from "@/components/admin/dashboard/sidebar";
-  import React, { useState } from "react";
+import React, { useState } from "react";
 
 const DashboardLayout = ({ children }) => {
   const [isOpen, setOpen] = useState(false);
@@ -22,7 +22,10 @@ const DashboardLayout = ({ children }) => {
             overflowX: "hidden",
           }}
         >
-          <div className=" flex flex-col items-center" style={{minHeight: '1000px'}}>
+          <div
+            className=" flex flex-col items-center"
+            style={{ minHeight: "1000px" }}
+          >
             {children}
           </div>
         </div>

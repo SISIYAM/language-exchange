@@ -10,7 +10,7 @@ const Banner = () => {
   return (
     <div
       className="min-h-[469px] max-w-[1440px] mx-auto flex items-center bg-cover bg-center"
-      // style={{ backgroundImage: `url('/bannerbg.png')` }}
+      style={{ backgroundImage: `url('/bannerbg.png')` }}
     >
       <div className=" flex justify-between items-center w-[90%] mx-auto">
         <div className=" w-1/2">

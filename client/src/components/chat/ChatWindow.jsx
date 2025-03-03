@@ -177,6 +177,7 @@ const ChatWindow = () => {
       <div
         ref={messagesContainerRef}
         className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50"
+        style={{ backgroundImage: `url('/bannerbg.png')` }}
       >
         {conversation.map((message, index) => (
           <div
@@ -190,9 +191,13 @@ const ChatWindow = () => {
             <div
               className={`max-w-[70%] rounded-lg p-3 ${
                 message.senderId === currentUser._id
-                  ? "bg-blue-500 text-white"
-                  : "bg-white text-gray-800"
+                  ? "bg-yellow-500 text-gray-800" // Sender's message
+                  : "text-gray-700" // Recipient's message
               }`}
+              style={{
+                backgroundColor:
+                  message.senderId === currentUser._id ? "" : "#FFF8EF", // Apply custom color
+              }}
             >
               {message.type === "call" ? (
                 <div dangerouslySetInnerHTML={{ __html: message.content }} />

@@ -106,7 +106,10 @@ const SubscriptionPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white py-12 px-4">
+    <div
+      className="min-h-screen bg-gradient-to-b from-blue-50 to-white py-12 px-4"
+      style={{ backgroundImage: `url('/bannerbg.png')` }}
+    >
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">

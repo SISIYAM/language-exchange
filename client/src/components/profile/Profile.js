@@ -1104,7 +1104,10 @@ const ProfileForm = () => {
           </div>
 
           {/* Main Content */}
-          <div className="md:w-3/4 md:pl-6">
+          <div
+            className="md:w-3/4 md:pl-6"
+            style={{ backgroundImage: `url('/bannerbg.png')` }}
+          >
             <div className="flex justify-between items-center mb-8">
               <h1 className="text-4xl font-semibold">Edit Profile</h1>
               <button
