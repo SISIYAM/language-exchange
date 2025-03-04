@@ -10,21 +10,18 @@ const LearningPage = () => {
   const tabs = [
     {
       id: "pronunciation",
-      label: "Practice Conversations",
-      description:
-        "Have real conversations with AI tutors in different languages.",
+      label: "Talk To Enlighten",
+      description: "Have real conversations with AI tutors.",
     },
     {
       id: "conversation",
-      label: "Practice Conversations",
-      description:
-        "Have real conversations with AI tutors in different languages.",
+      label: "Translate Your Thoughts",
+      description: "Translate your thoughts into different languages.",
     },
     {
       id: "grammar",
-      label: "Practice Conversations",
-      description:
-        "Have real conversations with AI tutors in different languages.",
+      label: "Grammar Correction",
+      description: "Correct your grammar mistakes.",
     },
   ];
 

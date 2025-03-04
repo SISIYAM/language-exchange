@@ -14,51 +14,55 @@ const GrammarCorrection = () => {
     { code: "es", name: "Spanish" },
     { code: "fr", name: "French" },
     { code: "de", name: "German" },
+    { code: "it", name: "Italian" },
+    { code: "pt", name: "Portuguese" },
+    { code: "nl", name: "Dutch" },
+    { code: "ru", name: "Russian" },
+    { code: "zh", name: "Chinese" },
+    { code: "ja", name: "Japanese" },
   ];
+
+  const API_KEY = process.env.NEXT_PUBLIC_OPENAI_API_KEY;
 
   const checkGrammar = async () => {
     if (!text.trim()) return;
 
     setIsChecking(true);
     try {
-      const response = await fetch("/api/learning/check-grammar", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          text,
-          language: selectedLanguage,
-        }),
-      });
+      const response = await fetch(
+        "https://api.openai.com/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${API_KEY}`,
+          },
+          body: JSON.stringify({
+            model: "gpt-3.5-turbo",
+            messages: [
+              {
+                role: "system",
+                content: `You are a multilingual grammar checker. If the input text is grammatically correct in the selected language (${selectedLanguage}), respond in the same language with 'This is grammatically correct.' If it contains mistakes, respond with 'This is incorrect. Correct is: ' followed by the corrected version of the text, also in the selected language.`,
+              },
+              { role: "user", content: text },
+            ],
+          }),
+        }
+      );
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(
-          errorData.error || `HTTP error! status: ${response.status}`
-        );
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
-      if (data.error) {
-        throw new Error(data.error);
-      }
-      setCorrections(data);
+      const gptResponse = data.choices[0].message.content;
+      setCorrections({ message: gptResponse });
     } catch (error) {
       console.error("Error checking grammar:", error);
-      setCorrections({
-        matches: [],
-        error: "Failed to check grammar. Please try again.",
-      });
+      setCorrections({ message: "Failed to check grammar. Please try again." });
     } finally {
       setIsChecking(false);
     }
-  };
-
-  const applySuggestion = (correction) => {
-    const before = text.substring(0, correction.offset);
-    const after = text.substring(correction.offset + correction.length);
-    setText(before + correction.replacements[0].value + after);
   };
 
   return (
@@ -113,36 +117,16 @@ const GrammarCorrection = () => {
 
       {corrections && (
         <div className="mt-6">
-          <h3 className="font-bold mb-3">Suggestions:</h3>
-          {corrections.matches.length > 0 ? (
-            <div className="space-y-4">
-              {corrections.matches.map((correction, index) => (
-                <div key={index} className="p-3 border rounded bg-yellow-50">
-                  <p className="text-red-500 mb-1">{correction.message}</p>
-                  <p className="text-gray-600 mb-2">
-                    Context: "...
-                    {text.substring(
-                      Math.max(0, correction.offset - 20),
-                      Math.min(
-                        text.length,
-                        correction.offset + correction.length + 20
-                      )
-                    )}
-                    ..."
-                  </p>
-                  {correction.replacements.length > 0 && (
-                    <button
-                      onClick={() => applySuggestion(correction)}
-                      className="text-blue-500 hover:text-blue-700"
-                    >
-                      Replace with: {correction.replacements[0].value}
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
+          <h3 className="font-bold mb-3">Result:</h3>
+          {corrections.message.startsWith("This is incorrect.") ? (
+            <p className="text-red-500">
+              {corrections.message.split("Correct is: ")[0]}
+              <span className="font-bold text-green-500">
+                Correct is: {corrections.message.split("Correct is: ")[1]}
+              </span>
+            </p>
           ) : (
-            <p className="text-green-500">No grammar or style issues found!</p>
+            <p className="text-green-500">{corrections.message}</p>
           )}
         </div>
       )}

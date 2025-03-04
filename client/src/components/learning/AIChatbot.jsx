@@ -192,7 +192,7 @@ const AIChatbot = () => {
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold mb-4">Practice Conversation</h2>
+      <h2 className="text-2xl font-bold mb-4">Translate Your Thoughts</h2>
 
       <div className="grid grid-cols-2 gap-4 mb-4">
         <div>

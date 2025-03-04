@@ -1,142 +1,114 @@
-"use client";
-import React, { useState, useRef } from "react";
-import { FaMicrophone, FaStop, FaPlay } from "react-icons/fa";
+import { useState } from "react";
+import "@chatscope/chat-ui-kit-styles/dist/default/styles.min.css";
+import {
+  MainContainer,
+  ChatContainer,
+  MessageList,
+  Message,
+  MessageInput,
+  TypingIndicator,
+} from "@chatscope/chat-ui-kit-react";
 
-const SpeechRecognition = () => {
-  const [isRecording, setIsRecording] = useState(false);
-  const [recordedAudio, setRecordedAudio] = useState(null);
-  const [feedback, setFeedback] = useState("");
-  const [text, setText] = useState("");
-  const mediaRecorderRef = useRef(null);
-  const audioChunksRef = useRef([]);
+const API_KEY = process.env.NEXT_PUBLIC_OPENAI_API_KEY;
 
-  const startRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaRecorderRef.current = new MediaRecorder(stream);
-      audioChunksRef.current = [];
-
-      mediaRecorderRef.current.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
-        }
-      };
-
-      mediaRecorderRef.current.onstop = () => {
-        const audioBlob = new Blob(audioChunksRef.current, {
-          type: "audio/wav",
-        });
-        const audioUrl = URL.createObjectURL(audioBlob);
-        setRecordedAudio(audioUrl);
-        checkPronunciation(audioBlob);
-      };
-
-      mediaRecorderRef.current.start();
-      setIsRecording(true);
-    } catch (error) {
-      console.error("Error accessing microphone:", error);
-      setFeedback("Error accessing microphone. Please check your permissions.");
-    }
-  };
-
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-    }
-  };
-
-  const checkPronunciation = async (audioBlob) => {
-    try {
-      const formData = new FormData();
-      formData.append("audio", audioBlob);
-      formData.append("text", text);
-
-      const response = await fetch("/api/learning/check-pronunciation", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(
-          errorData.error || `HTTP error! status: ${response.status}`
-        );
-      }
-
-      const data = await response.json();
-      if (data.error) {
-        throw new Error(data.error);
-      }
-      setFeedback(data.feedback);
-    } catch (error) {
-      console.error("Error checking pronunciation:", error);
-      setFeedback("Error analyzing pronunciation. Please try again.");
-    }
-  };
-
-  const playRecording = () => {
-    if (recordedAudio) {
-      const audio = new Audio(recordedAudio);
-      audio.play();
-    }
-  };
-
-  return (
-    <div className="bg-white p-6 rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold mb-4">Pronunciation Practice</h2>
-
-      <div className="mb-4">
-        <label className="block text-gray-700 text-sm font-bold mb-2">
-          Text to Practice:
-        </label>
-        <textarea
-          className="w-full p-2 border rounded"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder="Enter text to practice pronunciation..."
-          rows="3"
-        />
-      </div>
-
-      <div className="flex space-x-4 mb-4">
-        <button
-          onClick={isRecording ? stopRecording : startRecording}
-          className={`flex items-center px-4 py-2 rounded ${
-            isRecording
-              ? "bg-red-500 hover:bg-red-600"
-              : "bg-blue-500 hover:bg-blue-600"
-          } text-white`}
-        >
-          {isRecording ? (
-            <>
-              <FaStop className="mr-2" /> Stop Recording
-            </>
-          ) : (
-            <>
-              <FaMicrophone className="mr-2" /> Start Recording
-            </>
-          )}
-        </button>
-
-        {recordedAudio && (
-          <button
-            onClick={playRecording}
-            className="flex items-center px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded"
-          >
-            <FaPlay className="mr-2" /> Play Recording
-          </button>
-        )}
-      </div>
-
-      {feedback && (
-        <div className="mt-4 p-4 bg-gray-100 rounded">
-          <h3 className="font-bold mb-2">Feedback:</h3>
-          <p>{feedback}</p>
-        </div>
-      )}
-    </div>
-  );
+const systemMessage = {
+  role: "system",
+  content:
+    "You are a helpful language tutor teaching different languages. Help the user with their language learning journey.",
 };
 
-export default SpeechRecognition;
+function App() {
+  const [messages, setMessages] = useState([
+    {
+      message: "Ask Enlighten Anything!",
+      sender: "ChatGPT",
+      direction: "incoming",
+    },
+  ]);
+  const [isTyping, setIsTyping] = useState(false);
+
+  const handleSend = async (message) => {
+    const newMessage = {
+      message,
+      sender: "user",
+      direction: "outgoing", // User messages on the right
+    };
+
+    setMessages((prevMessages) => [...prevMessages, newMessage]);
+
+    setIsTyping(true);
+    await processMessageToChatGPT([...messages, newMessage]);
+  };
+
+  async function processMessageToChatGPT(chatMessages) {
+    let apiMessages = chatMessages.map((msg) => ({
+      role: msg.sender === "ChatGPT" ? "assistant" : "user",
+      content: msg.message,
+    }));
+
+    const apiRequestBody = {
+      model: "gpt-3.5-turbo",
+      messages: [systemMessage, ...apiMessages],
+    };
+
+    try {
+      const response = await fetch(
+        "https://api.openai.com/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(apiRequestBody),
+        }
+      );
+
+      const data = await response.json();
+
+      if (data.choices && data.choices.length > 0) {
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          {
+            message: data.choices[0].message.content,
+            sender: "ChatGPT",
+            direction: "incoming", // ChatGPT messages on the left
+          },
+        ]);
+      }
+    } catch (error) {
+      console.error("Error:", error);
+    }
+
+    setIsTyping(false);
+  }
+
+  return (
+    <div className="App">
+      <div style={{ position: "relative", height: "600px" }}>
+        <MainContainer>
+          <ChatContainer>
+            <MessageList
+              scrollBehavior="smooth"
+              typingIndicator={
+                isTyping ? (
+                  <TypingIndicator content="Enlighten is typing..." />
+                ) : null
+              }
+            >
+              {messages.map((msg, index) => (
+                <Message key={index} model={msg} />
+              ))}
+            </MessageList>
+            <MessageInput
+              placeholder="Type message here..."
+              onSend={handleSend}
+            />
+          </ChatContainer>
+        </MainContainer>
+      </div>
+    </div>
+  );
+}
+
+export default App;

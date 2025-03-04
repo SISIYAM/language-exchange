@@ -68,6 +68,7 @@ const SubscriptionPage = () => {
       period: "per month",
       features: [
         "Unlimited language exchange",
+        "Daily nature news & health tips",
         "Advanced partner matching",
         "Priority chat features",
         "Audio call",

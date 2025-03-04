@@ -9,6 +9,8 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@chatscope/chat-ui-kit-react": "^2.0.3",
+    "@chatscope/chat-ui-kit-styles": "^1.4.0",
     "@reduxjs/toolkit": "^2.2.7",
     "@zegocloud/zego-uikit-prebuilt": "^2.14.1",
     "axios": "^1.7.9",
