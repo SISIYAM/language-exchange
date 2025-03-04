@@ -52,7 +52,7 @@ const Navbar = () => {
     { name: t("nav.findPartner"), url: "community" },
     { name: t("nav.chat"), url: "chat" },
     { name: t("nav.blog"), url: "blog" },
-    { name: t("nav.download"), url: "download" },
+
     { name: "Learn", url: "learning" },
   ];
 

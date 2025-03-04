@@ -31,10 +31,17 @@ const Banner = () => {
             our income to green initiatives
           </p>
           <div className=" flex space-x-5">
-            <LanguageSelector />
-            <Link href={"/#"}>
-              <button className=" hover:text-[#074C77] hover:bg-transparent text-base font-normal py-2 border-2 border-[#074C77] px-10 rounded-full  bg-[#074C77]  text-white">
-                {t("startBtn")}
+            {/* <LanguageSelector /> */}
+            <Link href={"/learning"}>
+              <button className=" hover:text-[#077736] hover:bg-transparent text-base font-normal py-2 border-2 border-[#074C77] px-10 rounded-full  bg-green-500  text-white">
+                Start to learn languages
+              </button>
+            </Link>
+          </div>
+          <div className=" flex space-x-5 my-5">
+            <Link href={"/community"}>
+              <button className=" hover:text-[#077736] hover:bg-transparent text-base font-normal py-2 border-2 border-[#074C77] px-10 rounded-full  bg-green-500  text-white">
+                Find Your partner
               </button>
             </Link>
           </div>

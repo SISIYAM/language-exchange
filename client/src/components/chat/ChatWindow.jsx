@@ -91,8 +91,8 @@ const ChatWindow = () => {
       <p style="color:#000000; margin:5px"><strong >${userName}</strong> <br> started a ${
       isVideo ? "video" : "audio"
     } call.</p>
-      <button style="padding: 10px 15px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;">
-        <a href="${ReceiverCallLink}" target="_blank" style="text-decoration: none; color: white;">📞 Join Call</a>
+      <button style="padding: 10px 15px; background-color: #F9E8AE; color: white; border: none; border-radius: 5px; cursor: pointer;">
+        <a href="${ReceiverCallLink}" target="_blank" style="text-decoration: none; color: black;">📞 Join Call</a>
       </button>
     </div>
   `;
@@ -196,7 +196,7 @@ const ChatWindow = () => {
               }`}
               style={{
                 backgroundColor:
-                  message.senderId === currentUser._id ? "" : "#FFF8EF", // Apply custom color
+                  message.senderId === currentUser._id ? "#F9E8AE" : "#FFF8EF", // Apply custom color
               }}
             >
               {message.type === "call" ? (

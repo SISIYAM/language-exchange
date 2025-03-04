@@ -38,14 +38,14 @@ const LearningPage = () => {
             onClick={() => setActiveTab(tab.id)}
             className={`p-4 rounded-lg text-left transition-all ${
               activeTab === tab.id
-                ? "bg-blue-500 text-white"
+                ? "bg-green-500 text-white"
                 : "bg-white text-gray-800 hover:bg-gray-100"
             }`}
           >
             <h3 className="font-bold text-lg mb-2">{tab.label}</h3>
             <p
               className={`text-sm ${
-                activeTab === tab.id ? "text-blue-100" : "text-gray-600"
+                activeTab === tab.id ? "text-green-100" : "text-gray-600"
               }`}
             >
               {tab.description}

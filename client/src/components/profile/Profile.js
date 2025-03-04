@@ -1112,7 +1112,7 @@ const ProfileForm = () => {
               <h1 className="text-4xl font-semibold">Edit Profile</h1>
               <button
                 onClick={handleSave}
-                className="bg-blue-500 text-white px-6 py-2 rounded-full hover:bg-blue-600"
+                className="bg-green-500 text-white px-6 py-2 rounded-full hover:bg-blue-600"
               >
                 Save Changes
               </button>

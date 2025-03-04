@@ -6,17 +6,17 @@ import Features from "./Features";
 import HowItWorks from "./HowItWork";
 import Testimonial from "./Testimonial";
 import Testimonials from "./Review";
- 
+
 const HomePage = () => {
   return (
     <>
       <Banner />
       <LanguageGrid />
-      <TeamSection/>
-      <Features/>
-      <HowItWorks/>
-      <Testimonial/>
-      <Testimonials/>
+      <TeamSection />
+      <Features />
+      <HowItWorks />
+      <Testimonial />
+      <Testimonials />
     </>
   );
 };

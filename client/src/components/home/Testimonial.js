@@ -6,6 +6,7 @@ import "swiper/css";
 import "swiper/css/navigation";
 import "swiper/css/pagination";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
+import Link from "next/link";
 
 const profiles = [
   {
@@ -128,23 +129,32 @@ const Testimonial = () => {
           </div>
         </div>
 
-        <button className="px-8 py-3 bg-[#074c77] text-white font-semibold rounded-full hover:bg-blue-800 transition mt-8">
-          Start learning
-        </button>
+        <Link href="/learning">
+          <button className="hover:text-[#077736] hover:bg-transparent text-base font-normal py-2 border-2 border-[#074C77] px-10 rounded-full bg-green-500 text-white mt-10">
+            Start to learn languages
+          </button>
+        </Link>
       </div>
 
-      <div 
-      className="mx-auto w-full text-center bg-cover bg-center min-h-[26rem] my-28 flex justify-center items-center bg-black"
-      style={{
-        backgroundImage: `url('/flag/footerbg.jpg')`,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundColor: 'black'
-      }}
+      <div
+        className="mx-auto w-full text-center bg-cover bg-center min-h-[26rem] my-28 flex justify-center items-center bg-black"
+        style={{
+          backgroundImage: `url('/flag/footerbg.jpg')`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundColor: "black",
+        }}
       >
         <div>
-        <h3 className=" text-5xl font-light text-gray-200">Discover your <br/> community</h3>
-        <p className=" max-w-[476px] text-lg font-semibold text-gray-200 mt-5">Enligten connects you with millions of individuals who are experiencing the delights and hurdles of mastering a new language. Come join our vibrant community and contribute your thoughts to the world!</p>
+          <h3 className=" text-5xl font-light text-gray-200">
+            Discover your <br /> community
+          </h3>
+          <p className=" max-w-[476px] text-lg font-semibold text-gray-200 mt-5">
+            Enligten connects you with millions of individuals who are
+            experiencing the delights and hurdles of mastering a new language.
+            Come join our vibrant community and contribute your thoughts to the
+            world!
+          </p>
         </div>
       </div>
     </div>
