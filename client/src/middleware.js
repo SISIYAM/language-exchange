@@ -37,5 +37,13 @@ export async function middleware(request) {
 }
 
 export const config = {
-  matcher: ["/profile", "/blog", "/chat", "/community/:path*", "/dashboard"],
+  matcher: [
+    "/profile",
+    "/blog",
+    "/chat",
+    "/community/:path*",
+    "/dashboard",
+    "/subscription",
+    "/learning",
+  ],
 };
