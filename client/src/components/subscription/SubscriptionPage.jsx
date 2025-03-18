@@ -94,7 +94,7 @@ const SubscriptionPage = () => {
     }
 
     // Append the user's ID to the Stripe checkout URL
-    const checkoutUrl = `https://buy.stripe.com/test_9AQ6rP1Itdgv4AU7sv?client_reference_id=${currentUser._id}`;
+    const checkoutUrl = `https://buy.stripe.com/aEU7tPfJm9AWgSYcMM?client_reference_id=${currentUser._id}`;
     window.location.href = checkoutUrl;
   };
 
