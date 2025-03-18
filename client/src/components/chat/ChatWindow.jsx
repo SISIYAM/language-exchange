@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSelector, useDispatch } from "react-redux";
 import {
@@ -21,6 +21,53 @@ const ChatWindow = () => {
   const { currentUser } = useSelector((state) => state.user);
   const { selectedUser, conversation } = useSelector((state) => state.chat);
   const messagesContainerRef = useRef(null);
+  const [isSubscribed, setIsSubscribed] = useState(false);
+
+  useEffect(() => {
+    const checkSubscription = async () => {
+      const token = document.cookie
+        .split("; ")
+        .find((row) => row.startsWith("token="))
+        ?.split("=")[1];
+
+      if (!token) {
+        console.log("No token found, redirecting to login");
+        router.push("/login");
+        return;
+      }
+
+      try {
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/subscription/check-subscription`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        if (!response.ok) {
+          console.error(
+            "API returned an error:",
+            response.status,
+            response.statusText
+          );
+          setIsSubscribed(false);
+          return;
+        }
+
+        const data = await response.json();
+        console.log("API response data:", data);
+
+        setIsSubscribed(data.isSubscribed);
+      } catch (error) {
+        console.error("Subscription check error:", error);
+        setIsSubscribed(false);
+      }
+    };
+
+    checkSubscription();
+  }, [router]);
 
   useEffect(() => {
     if (currentUser?._id && selectedUser?._id) {
@@ -157,20 +204,22 @@ const ChatWindow = () => {
             <p className="text-sm text-gray-500">Online</p>
           </div>
         </div>
-        <div className="flex space-x-4">
-          <button
-            onClick={() => startCall(false)}
-            className="p-2 rounded-full hover:bg-gray-100"
-          >
-            <FaPhone className="w-5 h-5 text-blue-500" />
-          </button>
-          <button
-            onClick={() => startCall(true)}
-            className="p-2 rounded-full hover:bg-gray-100"
-          >
-            <FaVideo className="w-5 h-5 text-blue-500" />
-          </button>
-        </div>
+        {isSubscribed && (
+          <div className="flex space-x-4">
+            <button
+              onClick={() => startCall(false)}
+              className="p-2 rounded-full hover:bg-gray-100"
+            >
+              <FaPhone className="w-5 h-5 text-blue-500" />
+            </button>
+            <button
+              onClick={() => startCall(true)}
+              className="p-2 rounded-full hover:bg-gray-100"
+            >
+              <FaVideo className="w-5 h-5 text-blue-500" />
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Chat Messages */}
